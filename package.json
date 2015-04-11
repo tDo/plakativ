@@ -1,0 +1,28 @@
+{
+  "name": "plakativ",
+  "version": "0.1.0",
+  "description": "Kanban board based project management",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --check-leaks --recursive"
+  },
+  "keywords": [
+    "Kanban"
+  ],
+  "author": "Sebastian Toll <sebastiantoll@googlemail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^0.8.2",
+    "bluebird": "^2.9.24",
+    "debug": "^2.1.3",
+    "express": "^4.12.3",
+    "express-session": "^1.11.1",
+    "lodash": "^3.6.0",
+    "thinky": "^1.16.11"
+  },
+  "devDependencies": {
+    "gulp": "^3.8.11",
+    "mocha": "^2.2.4",
+    "should": "^5.2.0"
+  }
+}
