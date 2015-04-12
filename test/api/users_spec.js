@@ -56,7 +56,10 @@ describe('Users API', function() {
             api.users.create({ name: 'testuser', password: 'testpassword' }).then(function() {
                 api.users.create({ name: 'testuser', password: 'testpassword'})
                     .then(function() { done(new Error('Created same user twice')); })
-                    .error(function() { done(); });
+                    .error(function(err) {
+                        err.message.should.match(/The name testuser is already taken/)
+                        done();
+                    });
             }).error(function(err) { done(err); });
         });
 
@@ -89,13 +92,19 @@ describe('Users API', function() {
         it('should fail if the user does not exist', function(done) {
             api.users.validateCredentials({ name: 'Idonotexist', password: 'something'})
                 .then(function() { done(new Error('Accepted invalid user')); })
-                .error(function() { done(); });
+                .error(function(err) {
+                    err.message.should.match(/Could not find a user with the given name/);
+                    done();
+                });
         });
 
         it('should fail if the password is incorrect', function(done) {
             api.users.validateCredentials({ name: 'testuser', password: 'invalidpassword'})
                 .then(function() { done(new Error('Invalid password was accepted')); })
-                .error(function() { done(); });
+                .error(function(err) {
+                    err.message.should.match(/Password is invalid/);
+                    done();
+                });
         });
     });
 });

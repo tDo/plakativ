@@ -17,7 +17,7 @@ function create(userData) {
         try { user.validate(); }
         catch(err) { return reject(err); } // TODO: Better retrieval of what is missing
 
-        models.User.nameExists(user.name).then(function (exists) {
+        models.User.nameExists(user.name).then(function(exists) {
             if (exists) {
                 return reject(new Error('The name ' + userData.name + ' is already taken'));
             }
@@ -27,7 +27,7 @@ function create(userData) {
                 if (err) { return reject(err); }
                 user.password = hash;
 
-                user.save().then(function (user) {
+                user.save().then(function(user) {
                     resolve(user);
                 }).error(function() {
                     reject(new Error('Could not store user in database'));

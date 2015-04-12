@@ -21,13 +21,7 @@ router.post('/users/login', function(req, res, next) { next(new Error('Not imple
 router.get('/users/logout', function(req, res, next) { next(new Error('Not implemented')); });
 
 router.route('/boards')
-    .get(function(req, res, next) {
-        api.boards.get('').then(function(boards) {
-            res.json(boards);
-        }).error(function(err) {
-            res.json({ argh: true });
-        });
-    })
+    .get(function(req, res, next) { next(new Error('Not implemented')); })
     .post(function(req, res, next) { next(new Error('Not implemented')); });
 
 router.route('/boards/:boardId')

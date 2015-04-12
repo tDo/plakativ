@@ -16,8 +16,8 @@
     "bluebird": "^2.9.24",
     "debug": "^2.1.3",
     "express": "^4.12.3",
-    "express-session": "^1.11.1",
     "lodash": "^3.6.0",
+    "passport": "^0.2.1",
     "thinky": "^1.16.11"
   },
   "devDependencies": {

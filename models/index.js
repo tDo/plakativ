@@ -8,6 +8,10 @@ var Card   = require(__dirname + '/card');
 User.hasMany(Board, 'boards', 'id', 'ownerId');
 Board.belongsTo(User, 'owner', 'ownerId', 'id');
 
+// A board has many participants
+Board.hasAndBelongsToMany(User, 'participants', 'id', 'id');
+User.hasAndBelongsToMany(Board, 'participating', 'id', 'id');
+
 // A board has many columns
 Board.hasMany(Column, 'columns', 'id', 'boardId');
 Column.belongsTo(Board, 'board', 'boardId', 'id');
