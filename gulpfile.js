@@ -1,3 +1,17 @@
-var gulp = require('gulp');
+var jshint  = require('gulp-jshint');
+var stylish = require('jshint-stylish');
+var gulp    = require('gulp');
 
-// TODO: Add more stuff here
+// Code quality check by linting the source-files
+gulp.task('lint', function() {
+    return gulp.src([
+        './api/**/*.js',
+        './bin/www',
+        './models/**/*.js',
+        './routes/**/*.js',
+        './util/**/*.js',
+        './test/**/*.js',
+        './index.js'
+    ]).pipe(jshint())
+      .pipe(jshint.reporter(stylish));
+});

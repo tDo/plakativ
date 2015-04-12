@@ -5,7 +5,7 @@ var routes        = require(__dirname + '/routes');
 var api           = require(__dirname + '/api');
 var models        = require(__dirname + '/models');
 
-function init(config) {
+function init() {
     // Create actual express application instance
     var app = express();
 

@@ -57,7 +57,7 @@ describe('Users API', function() {
                 api.users.create({ name: 'testuser', password: 'testpassword'})
                     .then(function() { done(new Error('Created same user twice')); })
                     .error(function(err) {
-                        err.message.should.match(/The name testuser is already taken/)
+                        err.message.should.match(/The name testuser is already taken/);
                         done();
                     });
             }).error(function(err) { done(err); });
