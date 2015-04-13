@@ -5,7 +5,6 @@ var gulp    = require('gulp');
 // Code quality check by linting the source-files
 gulp.task('lint', function() {
     return gulp.src([
-        './api/**/*.js',
         './bin/www',
         './models/**/*.js',
         './routes/**/*.js',

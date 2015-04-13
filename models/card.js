@@ -16,7 +16,11 @@ var Card = thinky.createModel('Card', {
     }],
     createdAt: type.date().default(r.now())
 });
-
 Card.ensureIndex('order');
-
 module.exports = Card;
+
+// Relations
+var Column = require(__dirname + '/column');
+
+// A card belongs to a column
+Card.belongsTo(Column, 'column', 'columnId', 'id');

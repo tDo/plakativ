@@ -2,7 +2,6 @@ var express       = require('express');
 var passport      = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var routes        = require(__dirname + '/routes');
-var api           = require(__dirname + '/api');
 var models        = require(__dirname + '/models');
 
 function init() {
@@ -16,7 +15,7 @@ function init() {
     // - Configure local credentials validation handler
     passport.use(new LocalStrategy(
         function(username, password, done) {
-            api.users.validateCredentials({ name: username, password: password})
+            models.User.byCredentials({ name: username, password: password})
                 .then(function(user) { return done(null, user); })
                 .error(function(err) { done(err); });
         }
@@ -30,7 +29,7 @@ function init() {
         done(null, user.id);
     });
     passport.deserializeUser(function(id, done) {
-        models.Users.get(id).run()
+        models.User.get(id).run()
         .then(function(user) { done(null, user); })
         .error(function(err) { done(err); });
     });
@@ -39,7 +38,7 @@ function init() {
 
     // Bind routes
     // - API
-    app.use('/api', routes.api);
+    app.use('/models', routes.api);
 
     return app;
 }

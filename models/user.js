@@ -1,5 +1,6 @@
 var Promise = require('bluebird');
 var _       = require('lodash');
+var bcrypt  = require('bcrypt');
 var thinky  = require(__dirname + '/../util/thinky')();
 var type    = thinky.type;
 var r       = thinky.r;
@@ -11,8 +12,13 @@ var User = thinky.createModel('User', {
     password: type.string().required().min(6),
     createdAt: type.date().default(r.now())
 });
-
 User.ensureIndex('name');
+module.exports = User;
+
+// Relations
+// A user may own many boards
+var Board = require(__dirname + '/board');
+User.hasMany(Board, 'boards', 'id', 'ownerId');
 
 /**
  * Check if a specific object instance is a User-model instance
@@ -21,22 +27,6 @@ User.ensureIndex('name');
  */
 User.defineStatic('isUser', function(user) {
     return helpers.isModelOfType(user, User);
-});
-
-/**
- * Retrieve a user-model instance by name.
- * @param name Username to retrieve the model-instance for
- * @returns {Promise}
- */
-User.defineStatic('byName', function(name) {
-    return new Promise(function(resolve, reject) {
-        User.filter({name: name}).run().then(function(result) {
-            if (result.length < 1) { return reject(new Error('No user by that name was found')); }
-            resolve(result[0]);
-        }).error(function(err) {
-            reject(err);
-        });
-    });
 });
 
 /**
@@ -55,6 +45,22 @@ User.defineStatic('nameExists', function(name) {
             }).error(function(err) {
                 reject(err);
             });
+    });
+});
+
+/**
+ * Retrieve a user-model instance by name.
+ * @param name Username to retrieve the model-instance for
+ * @returns {Promise}
+ */
+User.defineStatic('byName', function(name) {
+    return new Promise(function(resolve, reject) {
+        User.filter({name: name}).run().then(function(result) {
+            if (result.length < 1) { return reject(new Error('No user by that name was found')); }
+            resolve(result[0]);
+        }).error(function(err) {
+            reject(err);
+        });
     });
 });
 
@@ -91,4 +97,65 @@ User.defineStatic('asUser', function(obj) {
     });
 });
 
-module.exports = User;
+/**
+ * Function validates user credentials passed in and passes the found user-model to the
+ * promise success handler, when the credentials were valid. The credentials must be passed
+ * in as an object of the form { name: string, password: string }
+ * @param credentials object of the form { name: string, password: string }
+ * @returns {Promise}
+ */
+User.defineStatic('byCredentials', function(credentials) {
+    return new Promise(function(resolve, reject) {
+        if (!_.isObject(credentials)) { return reject(new Error('No credentials were passed')); }
+        if (!_.isString(credentials.name)) { return reject(new Error('Name is missing')); }
+        if (!_.isString(credentials.password)) { return reject(new Error('Password is missing')); }
+
+        User.byName(credentials.name).then(function(user) {
+            // Check the password
+            bcrypt.compare(credentials.password, user.password, function(err, res) {
+                if (err) { return reject(new Error('Password is invalid')); }
+                if (!res) { return reject(new Error('Password is invalid')); }
+                resolve(user);
+            });
+
+        }).error(function() { reject(new Error('Could not find a user with the given name')); });
+    });
+});
+
+/**
+ * Create a new user-account based on the provided userdata. The function will internally
+ * check if all params are present (name and password) and also verify that they match the
+ * models schema (Presence, length, allowed characters, etc.). It will also verify that the
+ * provided name has not already been taken. The result of this call is a promise.
+ * @param userData object in the form of { name: string, password: string }
+ * @returns {Promise}
+ */
+User.defineStatic('create', function(userData) {
+    return new Promise(function(resolve, reject) {
+        var user = new User(userData);
+        try { user.validate(); }
+        catch(err) { return reject(err); } // TODO: Better retrieval of what is missing
+
+        User.nameExists(user.name).then(function(exists) {
+            if (exists) {
+                return reject(new Error('The name ' + userData.name + ' is already taken'));
+            }
+
+            // Now also bcrypt the password
+            bcrypt.hash(user.password, 8, function(err, hash) {
+                if (err) { return reject(err); }
+                user.password = hash;
+
+                user.save().then(function(user) {
+                    resolve(user);
+                }).error(function() {
+                    reject(new Error('Could not store user in database'));
+                });
+            });
+
+        }).error(function() {
+            reject(new Error('Could not check if the username already exists'));
+        });
+
+    });
+});
