@@ -6,6 +6,7 @@ var type    = thinky.type;
 var r       = thinky.r;
 var helpers = require(__dirname + '/helpers');
 
+
 var User = thinky.createModel('User', {
     id: type.string(),
     name: type.string().required().alphanum(),

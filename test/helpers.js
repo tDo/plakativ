@@ -17,4 +17,5 @@ function clearTables() {
     });
 }
 
+module.exports.clearTable  = clearTable;
 module.exports.clearTables = clearTables;

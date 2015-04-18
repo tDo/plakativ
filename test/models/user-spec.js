@@ -4,14 +4,14 @@ var models  = require(__dirname + '/../../models');
 require('should');
 var helpers = require(__dirname + '/../helpers');
 
-describe('Users API', function() {
+describe('Users', function() {
     beforeEach(function(done) {
-        helpers.clearTables()
+        helpers.clearTable('User')
             .then(function() { done(); })
             .error(function(err) { done(err); });
     });
 
-    describe('User creation', function() {
+    describe('Creation', function() {
         it('does not accept a missing name', function(done) {
             models.User.create({ password: 'something'}).then(function() {
                 done(new Error('Created a user without a name'));

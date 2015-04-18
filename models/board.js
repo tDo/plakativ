@@ -77,7 +77,7 @@ Board.defineStatic('create', function(owner, boardData) {
                 // The owner seems fine so far, create the board
                 var board = new Board(boardData);
                 board.owner = user;
-                board.saveAll({ owner: true, participants: false }).then(function(board) {
+                board.saveAll({ owner: true, participants: false, columns: false }).then(function(board) {
                     resolve(board);
                 }).error(function() {
                     reject(new Error('Could not create board'));
@@ -127,7 +127,7 @@ Board.define('addParticipant', function(user) {
 
             // Seems fine, add user
             that.participants.push(user);
-            that.saveAll({ owner: false, participants: true })
+            that.saveAll({ owner: false, participants: true, columns: false })
                 .then(function(board) { resolve(board); })
                 .error(function() { reject(new Error('Could not add participant to the board')); });
         });
@@ -155,4 +155,3 @@ Board.define('isParticipant', function(user) {
         });
     });
 });
-

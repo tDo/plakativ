@@ -4,11 +4,11 @@ var models  = require(__dirname + '/../../models');
 require('should');
 var helpers = require(__dirname + '/../helpers');
 
-describe('Boards API', function() {
+describe('Boards', function() {
     var userOwner;
     var users;
 
-    beforeEach(function(done) {
+    before(function(done) {
         users = [];
 
         // Cleanup and create a bunch of testusers
@@ -24,7 +24,13 @@ describe('Boards API', function() {
             .error(function(err) { done(err); });
     });
 
-    describe('Board creation', function() {
+    beforeEach(function(done) {
+        helpers.clearTable('Board').then(function() {
+            return helpers.clearTable('Board_User');
+        }).then(function() { done(); });
+    });
+
+    describe('Creation', function() {
         it('should not accept board-creation without an owner', function(done) {
             models.Board.create(null, { name: 'Testboard' })
                 .then(function() { done(new Error('Board created even without valid owner')); })

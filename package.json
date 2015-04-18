@@ -18,7 +18,7 @@
     "express": "^4.12.3",
     "lodash": "^3.6.0",
     "passport": "^0.2.1",
-    "thinky": "^1.16.11"
+    "thinky": "^2.0.1"
   },
   "devDependencies": {
     "gulp": "^3.8.11",
