@@ -2,16 +2,15 @@ var _ = require('lodash');
 
 /**
  * Helper function can be used to verify if a specific object-instance
- * is of a required thinky model type.
+ * is of a required sequelize model type.
  * @param obj which shall be checked
- * @param requiredModel Thinky Model type to check for
+ * @param requiredModel Model type to check for
  * @returns {boolean}
  */
 function isModelOfType(obj, requiredModel) {
     if (!_.isObject(obj)) { return false; }
     try {
-        var model = obj.getModel();
-        return model === requiredModel;
+        return obj.Model === requiredModel;
     } catch(err) { return false; }
 }
 

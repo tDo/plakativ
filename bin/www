@@ -1,13 +1,10 @@
 #!/usr/bin/env node
 var debug  = require('debug')('app4:server');
 var http   = require('http');
-var mode   = process.env.NODE_ENV === undefined ? 'development' : process.env.NODE_ENV;
-var configs = require(__dirname + '/../config.json');
-if (!configs.hasOwnProperty(mode)) { throw new Error('No configuration available for "' + mode + '"'); }
-var config = configs[mode];
+var config = require(__dirname + '/../config')();
 
-// Configure db
-require(__dirname + '/../util/thinky')(config.database);
+// Configure and connect db
+require(__dirname + '/../models/sequelize')();
 
 // Create actual application
 var app  = require(__dirname + '/../index')(config);

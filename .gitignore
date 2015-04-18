@@ -26,7 +26,7 @@ build/Release
 node_modules
 
 # Database specific local storage
-rethinkdb_data
+*.sqlite
 
 # IDE/Editor specific
 .idea

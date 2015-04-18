@@ -1,79 +1,64 @@
-var configs = require(__dirname + '/../../config.json');
-require(__dirname + '/../../util/thinky')(configs.testing.database);
-var models  = require(__dirname + '/../../models');
+process.env.NODE_ENV = 'test';
 require('should');
 var helpers = require(__dirname + '/../helpers');
+var models  = require(__dirname + '/../../models');
 
 describe('Columns', function() {
     var userOwner;
     var userOther;
     var board;
 
-    before(function(done) {
-        this.timeout(5000);
-        helpers.clearTables()
-            .then(function() { return models.User.create({ name: 'Testuser', password: 'password'}); })
-            .then(function(user) {
-                userOwner = user;
-                return models.User.create({ name: 'OtherUser1', password: 'password'});
-            }).then(function(user) {
-                userOther = user;
-                return models.Board.create(userOwner, { name: 'Testboard'}); })
-            .then(function(b) {
-                return b.addParticipant(userOther);
-            }).then(function(b) {
-                board = b;
-                done();
-            })
-            .error(function(err) { done(err); });
-    });
-
     beforeEach(function(done) {
-        helpers.clearTable('Column')
+        // Create database, testusers and a board to add columns to
+        helpers.createTestDatabase()
+            .then(function() { return models.User.make({ name: 'Testuser', password: 'password'}); })
+            .then(function(user) { userOwner = user; return models.User.make({ name: 'OtherUser1', password: 'password'}); })
+            .then(function(user) { userOther = user; return models.Board.make(userOwner, { name: 'Testboard'}); })
+            .then(function(b) { board = b; return b.addParticipant(userOther); })
             .then(function() { done(); })
-            .error(function(err) { done(err); });
+            .catch(function(err) { done(err); });
     });
 
     describe('Creation', function() {
         it('should not allow column-creation without a target-board', function(done) {
-            models.Column.create(null, { title: 'Column' })
+            models.Column.make(null, { title: 'Column' })
                 .then(function() { done(new Error('Created column without parent board')); })
-                .error(function(err) {
+                .catch(function(err) {
                     err.message.should.match(/Invalid board/);
                     done();
                 });
         });
 
         it('should not allow column-creation with a non-existing board', function(done) {
-            var b = new models.Board({ name: 'Some board'});
-            models.Column.create(b, { title: 'Column'})
+            var b = models.Board.build({ name: 'Some board' });
+            models.Column.make(b, { title: 'Column'})
                 .then(function() { done(new Error('Created column for a not-saved board')); })
-                .error(function(err) {
+                .catch(function(err) {
                     err.message.match.should.match(/Board has not been saved to database/);
                     done();
                 });
         });
 
         it('should not allow column-creation without a title', function(done) {
-            models.Column.create(board, {})
+            models.Column.make(board, {})
                 .then(function() { done(new Error('Created column without a title')); })
-                .error(function() { done(); });
+                .catch(function() { done(); });
         });
 
-        it('should add new columns to the last order-position', function(done) {
-            models.Column.create(board, { title: 'First column'})
+        it('should add new columns to the last position', function(done) {
+            models.Column.make(board, { title: 'First column' })
                 .then(function(col1) {
-                    col1.order.should.equal(0);
-                    return models.Column.create(board, { title: 'Second column' });
+                    col1.position.should.equal(0);
+                    return models.Column.make(board, { title: 'Second column' });
                 }).then(function(col2) {
-                    col2.order.should.equal(1);
+                    col2.position.should.equal(1);
                     done();
                 })
-                .error(function(err) { done(err); });
+                .catch(function(err) { done(err); });
         });
     });
 
-    describe('Reordering', function() {
+    describe('Repositioning', function() {
 
     });
 });

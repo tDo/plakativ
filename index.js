@@ -8,6 +8,7 @@ function init() {
     // Create actual express application instance
     var app = express();
 
+    /*
     // Configure authentication-provider
     // - Initialize and bind to express
     app.use(passport.initialize());
@@ -32,7 +33,7 @@ function init() {
         models.User.get(id).run()
         .then(function(user) { done(null, user); })
         .error(function(err) { done(err); });
-    });
+    });*/
 
 
 

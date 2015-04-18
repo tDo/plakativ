@@ -1,21 +1,9 @@
-var configs = require(__dirname + '/../config.json');
-var thinky  = require(__dirname + '/../util/thinky')(configs.testing.database);
-var r = thinky.r;
+process.env.NODE_ENV = 'test';
+var models    = require(__dirname + '/../models');
+var sequelize = models.sequelize();
 
-function clearTable(name) {
-    return r.table(name).delete().run();
-}
-function clearTables() {
-    return clearTable('User').then(function() {
-        return clearTable('Board');
-    }).then(function() {
-        return clearTable('Board_User');
-    }).then(function() {
-        return clearTable('Column');
-    }).then(function() {
-        return clearTable('Card');
-    });
+function createTestDatabase() {
+    return sequelize.sync({ force: true });
 }
 
-module.exports.clearTable  = clearTable;
-module.exports.clearTables = clearTables;
+module.exports.createTestDatabase = createTestDatabase;

@@ -1,4 +1,63 @@
-var Promise = require('bluebird');
+var Promise   = require('bluebird');
+var _         = require('lodash');
+var Sequelize = require('sequelize');
+var sequelize = require(__dirname + '/sequelize')();
+
+var Column = sequelize.define('Column', {
+    position: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+
+    title: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        validate: {
+            notEmpty: { msg: 'Column title may not be empty'}
+        }
+    },
+
+    wipLimit: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        validate: { min: 1 }
+    }
+}, {
+    classMethods: {
+        make: function(board, columnData) {
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.Board.isBoard(board)) { return reject(new Error('Invalid board')); }
+                // Workaround for not null parts
+                columnData.title = columnData.title || '';
+
+                var column = Column.build(columnData);
+                Column.max('position', { where: { boardId: board.id }})
+                    .then(function(max) {
+                        if (!_.isNumber(max) || _.isNaN(max)) { max = -1; }
+                        column.position = max + 1;
+                        return board.addColumn(column);
+                    })
+                    .then(function(column) { resolve(column); })
+                    .catch(function(err) { reject(err); });
+            });
+        }
+    }
+});
+
+module.exports = Column;
+
+var Board = require(__dirname + '/board');
+var Card = require(__dirname + '/card');
+
+// Relations
+// A Column belongs to one board
+Column.belongsTo(Board, { foreignKey: 'boardId' });
+
+// And has many cards
+Column.hasMany(Card, { as: 'Cards', foreignKey: 'columnId' });
+
+/*
 var thinky = require(__dirname + '/../util/thinky')();
 var type   = thinky.type;
 var r      = thinky.r;
@@ -64,3 +123,4 @@ Column.defineStatic('create', function(board, columnData) {
             });
         });
 });
+*/
