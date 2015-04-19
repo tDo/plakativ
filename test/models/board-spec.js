@@ -196,4 +196,26 @@ describe('Boards', function() {
                 .catch(function(err) { done(err); });
         });
     });
+
+    /*
+    describe('Normalize Column Positions', function() {
+        it ('should normalize the position-values of columns', function(done) {
+            var board;
+            models.Board.make(userOwner, { name: 'Testboard'})
+                .then(function(b) { board = b; return models.Column.create({ title: 'Col A', position: 10, boardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col B', position: 5, boardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col C', position: 3, boardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col D', position: 100, boardId: board.id }); })
+                .then(function() { return board.normalizeColumnPosition(); })
+                .then(function() { return board.getColumns(); })
+                .then(function(columns) {
+                    columns.should.have.length(4);
+                    columns[0].title.should.equal('Col C');
+                    columns[1].title.should.equal('Col B');
+                    columns[2].title.should.equal('Col A');
+                    columns[3].title.should.equal('Col D');
+                })
+                .catch(function(err) { done(err); });
+        });
+    });*/
 });

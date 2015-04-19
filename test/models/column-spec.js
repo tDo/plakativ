@@ -59,6 +59,97 @@ describe('Columns', function() {
     });
 
     describe('Repositioning', function() {
+        beforeEach(function(done) {
+            // Create a hand full of columns
+            return models.Column.create({ title: 'Col A', position: 1, boardId: board.id })
+                .then(function() { return models.Column.create({ title: 'Col B', position: 2, boardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col C', position: 3, boardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col D', position: 4, boardId: board.id }); })
+                .then(function() { done(); })
+                .catch(function(err) { done(err); });
+        });
 
+        it('should not accept a non-numeric offset', function(done) {
+            models.Column.findOne({ where: { title: 'Col C', boardId: board.id }})
+                .then(function(colC) {
+                    colC.moveTo('Not a number')
+                        .then(function() { done(new Error('Accepted non-numeric offset')); })
+                        .catch(function(err) {
+                            err.message.should.match(/Position offset must be numeric/);
+                            done();
+                        });
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should move an entry in the middle', function(done) {
+            models.Column.findOne({ where: { title: 'Col C', boardId: board.id }})
+                .then(function(colC) { return colC.moveTo(2); })
+                .then(function() { return board.getColumns({ order: 'position asc'}); })
+                .then(function(columns) {
+                    columns.should.have.length(4);
+                    columns[0].title.should.equal('Col A');
+                    columns[0].position.should.equal(1);
+
+                    columns[1].title.should.equal('Col C');
+                    columns[1].position.should.equal(2);
+
+                    columns[2].title.should.equal('Col B');
+                    columns[2].position.should.equal(3);
+
+                    columns[3].title.should.equal('Col D');
+                    columns[3].position.should.equal(5);
+
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should move an entry to the beginning', function(done) {
+            models.Column.findOne({ where: { title: 'Col C', boardId: board.id }})
+                .then(function(colC) { return colC.moveTo(-1); })
+                .then(function() { return board.getColumns({ order: 'position asc'}); })
+                .then(function(columns) {
+                    columns.should.have.length(4);
+                    columns[0].title.should.equal('Col C');
+                    columns[0].position.should.equal(1);
+
+                    columns[1].title.should.equal('Col A');
+                    columns[1].position.should.equal(2);
+
+                    columns[2].title.should.equal('Col B');
+                    columns[2].position.should.equal(3);
+
+                    columns[3].title.should.equal('Col D');
+                    columns[3].position.should.equal(5);
+
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should move an entry to the end', function(done) {
+            models.Column.findOne({ where: { title: 'Col C', boardId: board.id }})
+                .then(function(colC) { return colC.moveTo(5); })
+                .then(function() { return board.getColumns({ order: 'position asc'}); })
+                .then(function(columns) {
+                    columns.should.have.length(4);
+                    columns[0].title.should.equal('Col A');
+                    columns[0].position.should.equal(1);
+
+                    columns[1].title.should.equal('Col B');
+                    columns[1].position.should.equal(2);
+
+                    columns[2].title.should.equal('Col D');
+                    columns[2].position.should.equal(4);
+
+                    columns[3].title.should.equal('Col C');
+                    columns[3].position.should.equal(5);
+
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
     });
+
 });

@@ -96,6 +96,23 @@ var Board = sequelize.define('Board', {
                         }
                     });
             });
+        },
+
+        normalizeColumnPosition: function() {
+            throw new Error('Not implemented');
+
+            // Well... no worky ;)
+            /*var query = 'UPDATE Columns ' +
+            'SET position = ( ' +
+            '    select cnt from ( ' +
+            '    select id, position, (select count(*) from Columns b  where a.position >= b.position) as cnt ' +
+            'from Columns a ' +
+            'ORDER BY cnt DESC' +
+            ') AS fnord ' +
+            'WHERE fnord.id = id) ' +
+            'WHERE id = id';
+
+            return sequelize.query(query);*/
         }
     }
 });
