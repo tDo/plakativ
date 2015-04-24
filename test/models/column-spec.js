@@ -34,7 +34,7 @@ describe('Columns', function() {
             models.Column.make(b, { title: 'Column'})
                 .then(function() { done(new Error('Created column for a not-saved board')); })
                 .catch(function(err) {
-                    err.message.match.should.match(/Board has not been saved to database/);
+                    err.message.should.match(/Invalid board/);
                     done();
                 });
         });
@@ -42,16 +42,32 @@ describe('Columns', function() {
         it('should not allow column-creation without a title', function(done) {
             models.Column.make(board, {})
                 .then(function() { done(new Error('Created column without a title')); })
-                .catch(function() { done(); });
+                .catch(function(err) {
+                    err.message.should.match(/Column title may not be empty/);
+                    done();
+                });
+        });
+
+        it('should create a new column', function(done) {
+            models.Column.make(board, { title: 'First column', wipLimit: 10 })
+                .then(function(col) {
+                    models.Column.isColumn(col).should.equal(true);
+                    col.BoardId.should.equal(board.id);
+                    col.title.should.equal('First column');
+                    col.position.should.equal(1);
+                    col.wipLimit.should.equal(10);
+                    done();
+                })
+                .catch(function(err) { done(err); });
         });
 
         it('should add new columns to the last position', function(done) {
             models.Column.make(board, { title: 'First column' })
                 .then(function(col1) {
-                    col1.position.should.equal(0);
+                    col1.position.should.equal(1);
                     return models.Column.make(board, { title: 'Second column' });
                 }).then(function(col2) {
-                    col2.position.should.equal(1);
+                    col2.position.should.equal(2);
                     done();
                 })
                 .catch(function(err) { done(err); });
@@ -61,10 +77,10 @@ describe('Columns', function() {
     describe('Repositioning', function() {
         beforeEach(function(done) {
             // Create a hand full of columns
-            return models.Column.create({ title: 'Col A', position: 1, boardId: board.id })
-                .then(function() { return models.Column.create({ title: 'Col B', position: 2, boardId: board.id }); })
-                .then(function() { return models.Column.create({ title: 'Col C', position: 3, boardId: board.id }); })
-                .then(function() { return models.Column.create({ title: 'Col D', position: 4, boardId: board.id }); })
+            return models.Column.create({ title: 'Col A', position: 1, BoardId: board.id })
+                .then(function() { return models.Column.create({ title: 'Col B', position: 2, BoardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col C', position: 3, BoardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col D', position: 4, BoardId: board.id }); })
                 .then(function() { done(); })
                 .catch(function(err) { done(err); });
         });
@@ -83,7 +99,7 @@ describe('Columns', function() {
         });
 
         it('should move an entry in the middle', function(done) {
-            models.Column.findOne({ where: { title: 'Col C', boardId: board.id }})
+            models.Column.findOne({ where: { title: 'Col C', BoardId: board.id }})
                 .then(function(colC) { return colC.moveTo(2); })
                 .then(function() { return board.getColumns({ order: 'position asc'}); })
                 .then(function(columns) {
@@ -106,7 +122,7 @@ describe('Columns', function() {
         });
 
         it('should move an entry to the beginning', function(done) {
-            models.Column.findOne({ where: { title: 'Col C', boardId: board.id }})
+            models.Column.findOne({ where: { title: 'Col C', BoardId: board.id }})
                 .then(function(colC) { return colC.moveTo(-1); })
                 .then(function() { return board.getColumns({ order: 'position asc'}); })
                 .then(function(columns) {
@@ -129,7 +145,7 @@ describe('Columns', function() {
         });
 
         it('should move an entry to the end', function(done) {
-            models.Column.findOne({ where: { title: 'Col C', boardId: board.id }})
+            models.Column.findOne({ where: { title: 'Col C', BoardId: board.id }})
                 .then(function(colC) { return colC.moveTo(5); })
                 .then(function() { return board.getColumns({ order: 'position asc'}); })
                 .then(function(columns) {

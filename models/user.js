@@ -108,9 +108,13 @@ var User = sequelize.define('User', {
 module.exports = User;
 
 var Board = require(__dirname + '/board');
+var Card  = require(__dirname + '/card');
 
 // Relations
 // A user may own many boards
-User.hasMany(Board, { as: 'Boards', foreignKey: 'ownerId'});
+User.hasMany(Board, { as: 'Boards', foreignKey: 'OwnerId'});
 // And can participate in many boards
-User.belongsToMany(Board, { as: 'Participating', through: 'BoardParticipants', foreignKey: 'userId'});
+User.belongsToMany(Board, { as: 'Participating', through: 'BoardParticipants' });
+
+// A user can be assigned to many cards
+User.belongsToMany(Card, { as: 'Assigneed', through: 'CardAssignees' });

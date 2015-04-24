@@ -8,14 +8,15 @@ var Column = sequelize.define('Column', {
     position: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        defaultValue: 0
+        defaultValue: 1
     },
 
     title: {
         type: Sequelize.STRING,
         allowNull: false,
         validate: {
-            notEmpty: { msg: 'Column title may not be empty'}
+            notEmpty: { msg: 'Column title may not be empty'},
+            len: { args: [1, 255], msg: 'Column title is either too long or too short (1..255 characters)' }
         }
     },
 
@@ -50,9 +51,9 @@ var Column = sequelize.define('Column', {
                 columnData.title = columnData.title || '';
 
                 var column = Column.build(columnData);
-                Column.max('position', { where: { boardId: board.id }})
+                Column.max('position', { where: { BoardId: board.id }})
                     .then(function(max) {
-                        if (!_.isNumber(max) || _.isNaN(max)) { max = -1; }
+                        if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
                         column.position = max + 1;
                         return board.addColumn(column);
                     })
@@ -80,7 +81,7 @@ var Column = sequelize.define('Column', {
                 if (!_.isNumber(offset) && !_.isNaN(offset)) { return reject(new Error('Position offset must be numeric')); }
 
                 // Get one entry with the pos as an offset
-                Column.findOne({ offset: offset - 1, where: { boardId: that.boardId }, order: 'position asc' })
+                Column.findOne({ offset: offset - 1, where: { BoardId: that.BoardId }, order: 'position asc' })
                     .then(function(column) {
                         // Did we find some columns which would come after the offset?
                         if (column !== null) {
@@ -89,14 +90,14 @@ var Column = sequelize.define('Column', {
                             // Since we are executing 2 combined updates here, do this in a transaction
                             sequelize.transaction(function(t) {
                                 return Column.update({ position: sequelize.literal('position + 1') },
-                                                     { where: { position: { gte: column.position }}},
+                                                     { where: { BoardId: that.BoardId, position: { gte: column.position }}},
                                                      { transaction: t })
                                     .then(function() { return that.update({ position: newPos}, { transaction: t }); });
                             }).then(function() { resolve(); })
                               .catch(function(err) { reject(err); });
                         } else {
                             // There are none, thus get the highest pos and move it to the end
-                            Column.max('position', { where: { boardId: that.boardId }})
+                            Column.max('position', { where: { BoardId: that.BoardId }})
                                 .then(function(max) {
                                     if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
                                     return that.update({ position: max + 1 });
@@ -119,7 +120,7 @@ var Card = require(__dirname + '/card');
 
 // Relations
 // A Column belongs to one board
-Column.belongsTo(Board, { foreignKey: 'boardId' });
+Column.belongsTo(Board);
 
 // And has many cards
-Column.hasMany(Card, { as: 'Cards', foreignKey: 'columnId' });
+Column.hasMany(Card, { as: 'Cards' });

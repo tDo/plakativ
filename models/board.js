@@ -1,5 +1,4 @@
 var Promise   = require('bluebird');
-var _         = require('lodash');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/sequelize')();
 var helpers   = require(__dirname + '/helpers');
@@ -119,13 +118,17 @@ var Board = sequelize.define('Board', {
 
 module.exports = Board;
 
-var User      = require(__dirname + '/user');
-var Column    = require(__dirname + '/column');
+var User   = require(__dirname + '/user');
+var Column = require(__dirname + '/column');
+var Label  = require(__dirname + '/label');
 
 // Relations
 // A board will have one owner and many participants
-Board.belongsTo(User, { as: 'Owner', foreignKey: 'ownerId' });
-Board.belongsToMany(User, { as: 'Participants', through: 'BoardParticipants', foreignKey: 'boardId' });
+Board.belongsTo(User, { as: 'Owner', foreignKey: 'OwnerId' });
+Board.belongsToMany(User, { as: 'Participants', through: 'BoardParticipants' });
 
 // A board will have many columns
-Board.hasMany(Column, { as: 'Columns', foreignKey: 'boardId' });
+Board.hasMany(Column, { as: 'Columns' });
+
+// A board can hold many labels
+Board.hasMany(Label, { as: 'Labels' });

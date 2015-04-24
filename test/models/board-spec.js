@@ -58,6 +58,7 @@ describe('Boards', function() {
         it('should create a board', function(done) {
             models.Board.make(userOwner, { name: 'Testboard'})
                 .then(function(board) {
+                    models.Board.isBoard(board).should.equal(true);
                     board.name.should.equal('Testboard');
                     board.private.should.equal(true);
                     return board.getOwner(userOwner);
