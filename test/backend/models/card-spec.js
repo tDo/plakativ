@@ -217,7 +217,48 @@ describe('Cards', function() {
 
         });
 
-        describe('Between multiple columns', function() {});
+        describe('Between multiple columns', function() {
+            it('should move a card from one column to another', function(done) {
+                models.Card.findOne({ where: { title: 'CardAC', ColumnId: columns[0].id }})
+                    .then(function(card) { return card.moveTo(columns[1], -1); })
+                    .then(function() { return columns[1].getCards({ order: 'position asc'}); })
+                    .then(function(cards) {
+                        cards.length.should.equal(5);
+
+                        cards[0].title.should.equal('CardAC');
+                        cards[0].position.should.equal(1);
+
+                        cards[1].title.should.equal('CardBA');
+                        cards[1].position.should.equal(2);
+
+                        cards[2].title.should.equal('CardBB');
+                        cards[2].position.should.equal(3);
+
+                        cards[3].title.should.equal('CardBC');
+                        cards[3].position.should.equal(4);
+
+                        cards[4].title.should.equal('CardBD');
+                        cards[4].position.should.equal(5);
+
+                        return columns[0].getCards({ order: 'position asc'});
+                    })
+                    .then(function(cards) {
+                        cards.length.should.equal(3);
+
+                        cards[0].title.should.equal('CardAA');
+                        cards[0].position.should.equal(1);
+
+                        cards[1].title.should.equal('CardAB');
+                        cards[1].position.should.equal(2);
+
+                        cards[2].title.should.equal('CardAD');
+                        cards[2].position.should.equal(4);
+
+                        done();
+                    })
+                    .catch(function(err) { done(err); });
+            });
+        });
     });
 
     describe('User assignment', function() {});
