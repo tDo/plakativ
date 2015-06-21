@@ -1,7 +1,7 @@
 process.env.NODE_ENV = 'test';
 require('should');
 var helpers = require(__dirname + '/../helpers');
-var models  = require(__dirname + '/../../models');
+var models  = require(__dirname + '/../../../models');
 
 
 describe('Users', function() {

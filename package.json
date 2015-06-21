@@ -4,7 +4,7 @@
   "description": "Kanban board based project management",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --check-leaks --recursive"
+    "test": "mocha --check-leaks --recursive test/backend/**/*.js"
   },
   "keywords": [
     "Kanban"
