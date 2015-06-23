@@ -68,7 +68,31 @@ var Card = sequelize.define('Card', {
 
     instanceMethods: {
         assignUser: function(user) {
-            throw new Error('Not implemented');
+            var that = this;
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
+                // Now check for the board (Is the user participating?)
+                that.getColumn()
+                    .then(function(column) { return column.getBoard(); })
+                    .then(function(board) { return board.isParticipating(user); })
+                    .then(function(isParticipating) {
+                        if (!isParticipating) { return reject(new Error('The user is not participating in the board')); }
+                        return that.addAssignee(user);
+                    })
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
+            });
+        },
+
+        isAssignedUser: function(user) {
+            var that = this;
+
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
+                that.hasAssignee(user)
+                    .then(function(isAssigned) { resolve(isAssigned); })
+                    .catch(function(err) { reject(err); });
+            });
         },
 
         assignLabel: function(label) {

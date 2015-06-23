@@ -261,7 +261,91 @@ describe('Cards', function() {
         });
     });
 
-    describe('User assignment', function() {});
+    describe('User assignment', function() {
+        beforeEach(function(done) {
+            // Create a few posts for both columns
+            // First column
+            return models.Card.make(columns[0], { title: 'CardAA' })
+                .then(function() { done(); })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should assign a user to a card', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.assignUser(userOwner);
+                })
+                .then(function() { return card.assignUser(userOther); })
+                .then(function() { return card.getAssignees(); })
+                .then(function(users) {
+                    users.length.should.equal(2);
+
+                    users[0].id.should.equal(userOwner.id);
+                    users[1].id.should.equal(userOther.id);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should assign a user only once', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.assignUser(userOwner);
+                })
+                .then(function() { return card.assignUser(userOwner); })
+                .then(function() { return card.getAssignees(); })
+                .then(function(users) {
+                    users.length.should.equal(1);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should verify that a user is assigned to a card', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.addAssignee(userOwner);
+                })
+                .then(function() { return card.isAssignedUser(userOwner); })
+                .then(function(isAssigned) {
+                    isAssigned.should.equal(true);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should not assign a user to card if she does not participate in the board', function(done) {
+            var userNotPart;
+
+            models.User.make({ name: 'NotPart', password: 'password'})
+                .then(function(user) {
+                    userNotPart = user;
+                    return models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }});
+                })
+                .then(function(card) { return card.assignUser(userNotPart); })
+                .then(function() { done(new Error('Did not fail user assignment')); })
+                .catch(function(err) {
+                    err.message.should.match(/The user is not participating in the board/);
+                    done();
+                });
+        });
+
+        it('should not assign non-user objects', function(done) {
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(card) { return card.assignUser({ foo: 'bar'}); })
+                .then(function() { done(new Error('Assigned a non-user instance')); })
+                .catch(function(err) {
+                    err.message.should.match(/Invalid user/);
+                    done();
+                });
+        });
+    });
 
     describe('Label assignment', function() {});
 });
