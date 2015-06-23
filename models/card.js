@@ -46,6 +46,13 @@ var Card = sequelize.define('Card', {
             return !obj.isNewRecord;
         },
 
+        /**
+         * Create a new card-instance which is bound to a specific column.
+         * It will automatically be placed at the last position in this column.
+         * @param column To add the card to
+         * @param cardData further data for the column
+         * @returns {bluebird|exports|module.exports}
+         */
         make: function(column, cardData) {
             return new Promise(function(resolve, reject) {
                 if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
@@ -67,6 +74,11 @@ var Card = sequelize.define('Card', {
     },
 
     instanceMethods: {
+        /**
+         * Assign a user (Which must be a participant of the board) to this card.
+         * @param user which shall be added
+         * @returns {bluebird|exports|module.exports}
+         */
         assignUser: function(user) {
             var that = this;
             return new Promise(function(resolve, reject) {
@@ -84,6 +96,14 @@ var Card = sequelize.define('Card', {
             });
         },
 
+        /**
+         * Checks if a specific user is assigned to this card. It will
+         * pass on an "isAssigned" boolean-parameter to the resolve-handler
+         * of the returned promise. Only on real (actual) errors it will
+         * reject the promise
+         * @param user which shall be checked for assignment to this card
+         * @returns {bluebird|exports|module.exports}
+         */
         isAssignedUser: function(user) {
             var that = this;
 
@@ -99,6 +119,16 @@ var Card = sequelize.define('Card', {
             throw new Error('Not implemented');
         },
 
+        /**
+         * Move the card to a column at a specific offset. This may either be the same
+         * column to reposition the card or another column. The offset starts at 1 instead of the typical 0-based
+         * offset to get a "more natural" order of cards. This handler will move the card to the actual offset
+         * defined and increase the position of all following cards. Note that this might lead to fragmentation
+         * of the internal position counter, which should be defragmented from time to time.
+         * @param column To/In which the card shall be positioned
+         * @param offset where the card shall be placed
+         * @returns {bluebird|exports|module.exports}
+         */
         moveTo: function(column, offset) {
             var that = this;
             return new Promise(function(resolve, reject) {
@@ -108,43 +138,43 @@ var Card = sequelize.define('Card', {
                 if (!_.isNumber(offset) && !_.isNaN(offset)) { return reject(new Error('Position offset must be numeric')); }
 
                 // Ensure the target-column is associated with the same board as the current column
-                that.getColumn().then(function(cardColumn) {
-                    if (!sequelize.models.Column.isColumn(cardColumn)) { return reject(new Error('Card is not associated with a valid column')); }
-                    if (cardColumn.BoardId !== column.BoardId) { return reject(new Error('Can not move card to column in different board')); }
+                that.getColumn()
+                    .then(function(cardColumn) {
+                        if (!sequelize.models.Column.isColumn(cardColumn)) { return reject(new Error('Card is not associated with a valid column')); }
+                        if (cardColumn.BoardId !== column.BoardId) { return reject(new Error('Can not move card to column in different board')); }
 
-                    // Get one entry with the pos as an offset
-                    Card.findOne({offset: offset - 1, where: { ColumnId: column.id }, order: 'position asc'})
-                        .then(function (card) {
-                            // Did we find some cards which would come after the offset?
-                            if (card !== null) {
-                                // Found some cards which would still come after
-                                var newPos = card.position;
-                                // Since we are executing 2 combined updates here, do this in a transaction
-                                sequelize.transaction(function(t) {
-                                    return Card.update({ position: sequelize.literal('position + 1') },
-                                                       { where: { ColumnId: column.id, position: { gte: card.position }}},
-                                                       { transaction: t })
-                                        .then(function() { return that.update({ ColumnId: column.id, position: newPos }, { transaction: t }); });
-                                }).then(function() { resolve(); })
-                                  .catch(function(err) { reject(err); });
-                            } else {
-                                // There are none, thus get the highest pos and move it to the end
-                                Card.max('position', { where: { ColumnId: column.id }})
-                                    .then(function(max) {
-                                        if (!_.isNumber(max) || _.isNaN(max)) {
-                                            max = 0;
-                                        }
-                                        return that.update({ ColumnId: column.id, position: max + 1 });
-                                    })
-                                    .then(function() { resolve(); })
-                                    .catch(function(err) { reject(err); });
-                            }
+                        // Get one entry with the pos as an offset
+                        return Card.findOne({offset: offset - 1, where: { ColumnId: column.id }, order: 'position asc'});
+                    })
+                    .then(function(card) {
+                        // Did we find some cards which would come after the offset?
+                        if (card !== null) {
+                            // Found some cards which would still come after
+                            var newPos = card.position;
+                            // Since we are executing 2 combined updates here, do this in a transaction
+                            sequelize.transaction(function(t) {
+                                return Card.update({ position: sequelize.literal('position + 1') },
+                                    { where: { ColumnId: column.id, position: { gte: card.position }}},
+                                    { transaction: t })
+                                    .then(function() { return that.update({ ColumnId: column.id, position: newPos }, { transaction: t }); });
+                            })
+                            .then(function() { resolve(); })
+                            .catch(function(err) { reject(err); });
+                        } else {
+                            // There are none, thus get the highest pos and move it to the end
+                            Card.max('position', { where: { ColumnId: column.id }})
+                                .then(function(max) {
+                                    if (!_.isNumber(max) || _.isNaN(max)) {
+                                        max = 0;
+                                    }
+                                    return that.update({ ColumnId: column.id, position: max + 1 });
+                                })
+                                .then(function() { resolve(); })
+                                .catch(function(err) { reject(err); });
+                        }
 
-                        })
-                        .catch(function(err) {
-                            reject(err);
-                        });
-                });
+                    })
+                    .catch(function(err) { reject(err); });
             });
         }
     }

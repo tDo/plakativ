@@ -93,7 +93,8 @@ var Board = sequelize.define('Board', {
                             // Seems to be a participating user
                             resolve(true);
                         }
-                    });
+                    })
+                    .catch(function(err) { reject(err); });
             });
         },
 
