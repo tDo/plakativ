@@ -98,21 +98,33 @@ var Board = sequelize.define('Board', {
             });
         },
 
-        normalizeColumnPosition: function() {
-            throw new Error('Not implemented');
+        /**
+         * This helper-function will attempt to remove the relation of card <-> user assignments from all
+         * cards present in this board. This function will typically be called before removing a participant
+         * from a board, to clean up her presence.
+         * @param user for whom the cards shall be removed
+         * @returns {bluebird|exports|module.exports}
+         */
+        removeParticipantFromAllCards: function(user) {
+            var that = this;
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
+                // So, we are doing it raw since this seems the most viable way to execute this query...
+                var query = 'DELETE FROM CardAssignees ' +
+                    'WHERE CardAssignees.CardId IN (' +
+                    '  SELECT Cards.id FROM Cards ' +
+                    '  JOIN Columns ON (Cards.ColumnId = Columns.id) ' +
+                    '  WHERE Columns.BoardId = ? ' +
+                    ') ' +
+                    'AND CardAssignees.UserId = ?';
 
-            // Well... no worky ;)
-            /*var query = 'UPDATE Columns ' +
-            'SET position = ( ' +
-            '    select cnt from ( ' +
-            '    select id, position, (select count(*) from Columns b  where a.position >= b.position) as cnt ' +
-            'from Columns a ' +
-            'ORDER BY cnt DESC' +
-            ') AS fnord ' +
-            'WHERE fnord.id = id) ' +
-            'WHERE id = id';
-
-            return sequelize.query(query);*/
+                sequelize.query(query, {
+                    replacements: [ that.id, user.id ],
+                    type: sequelize.QueryTypes.BULKDELETE
+                })
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
+            });
         }
     }
 });

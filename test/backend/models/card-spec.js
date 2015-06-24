@@ -345,6 +345,39 @@ describe('Cards', function() {
                     done();
                 });
         });
+
+        it('should remove a user-assignment', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.assignUser(userOther);
+                })
+                .then(function() { return card.removeAssignee(userOther); })
+                .then(function() { return card.getAssignees(); })
+                .then(function(users) {
+                    users.length.should.equal(0);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should remove user-assigment from all cards in the board', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.assignUser(userOwner);
+                })
+                .then(function() { return card.assignUser(userOther); })
+                .then(function() { return board.removeParticipantFromAllCards(userOther); })
+                .then(function() { return card.getAssignees(); })
+                .then(function(users) {
+                    users.length.should.equal(1);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
     });
 
     describe('Label assignment', function() {});
