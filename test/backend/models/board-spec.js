@@ -61,7 +61,7 @@ describe('Boards', function() {
                     models.Board.isBoard(board).should.equal(true);
                     board.name.should.equal('Testboard');
                     board.private.should.equal(true);
-                    return board.getOwner(userOwner);
+                    return board.getOwner();
                 })
                 .then(function(owner) {
                     owner.id.should.equal(userOwner.id);

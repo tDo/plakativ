@@ -51,13 +51,18 @@ var Column = sequelize.define('Column', {
                 columnData.title = columnData.title || '';
 
                 var column = Column.build(columnData);
-                Column.max('position', { where: { BoardId: board.id }})
+                column.validate()
+                    .then(function(err) {
+                        if (err) { return reject(err); }
+                        return Column.max('position', { where: { BoardId: board.id }});
+                    })
                     .then(function(max) {
                         if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
                         column.position = max + 1;
-                        return board.addColumn(column);
+                        return column.save();
                     })
-                    .then(function(column) { resolve(column); })
+                    .then(function() { return column.setBoard(board); })
+                    .then(function() { resolve(column); })
                     .catch(function(err) { reject(err); });
             });
         }

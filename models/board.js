@@ -39,9 +39,13 @@ var Board = sequelize.define('Board', {
                 // Workaround for not null parts
                 boardData.name = boardData.name || '';
 
-                var board = Board.build(boardData);
-                return user.addBoard(board)
-                    .then(function(board) { resolve(board); })
+                var board;
+                Board.create(boardData)
+                    .then(function(b) {
+                        board = b;
+                        return board.setOwner(user);
+                    })
+                    .then(function() { resolve(board); })
                     .catch(function(err) { reject(err); });
             });
         }

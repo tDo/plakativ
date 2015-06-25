@@ -61,13 +61,18 @@ var Card = sequelize.define('Card', {
                 cardData.description = cardData.description || '';
 
                 var card = Card.build(cardData);
-                Card.max('position', { where: { ColumnId: column.id }})
+                card.validate()
+                     .then(function(err) {
+                        if (err) { return reject(err); }
+                        return Card.max('position', { where: { ColumnId: column.id }});
+                    })
                     .then(function(max) {
                         if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
                         card.position = max + 1;
-                        return column.addCard(card);
+                        return card.save();
                     })
-                    .then(function(card) { resolve(card); })
+                    .then(function() { return card.setColumn(column); })
+                    .then(function() { resolve(card); })
                     .catch(function(err) { reject(err); });
             });
         }
