@@ -1,0 +1,23 @@
+{
+  "name": "plakativ",
+  "main": "index.js",
+  "version": "0.1.0",
+  "authors": [
+    "Sebastian Toll <sebastiantoll@googlemail.com>"
+  ],
+  "description": "Kanban board based projecet management",
+  "keywords": [
+    "Kanban"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.0.0"
+  }
+}
