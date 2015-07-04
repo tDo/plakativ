@@ -209,4 +209,51 @@ describe('Boards', function() {
         });
     });
 
+    describe('Querying boardlists', function() {
+
+        beforeEach(function(done) {
+            models.Board.make(userOwner, { name: 'OwnedBoard1' })
+                .then(function() { return models.Board.make(userOwner, { name: 'OwnedBoard2' }); })
+                .then(function() { return models.Board.make(users[0], { name: 'ParticipantBoard1' }); })
+                .then(function(board) { return board.addParticipant(userOwner); })
+                .then(function() { return models.Board.make(users[0], { name: 'ParticipantBoard2' }); })
+                .then(function(board) { return board.addParticipant(userOwner); })
+                .then(function() { done(); })
+                .catch(function(err) { done(err); });
+        });
+
+        it('can get the list of owned boards', function(done) {
+            models.Board.getOwned(userOwner).then(function(boards) {
+                boards.should.have.length(2);
+                boards[0].name.should.equal('OwnedBoard1');
+                boards[1].name.should.equal('OwnedBoard2');
+
+                done();
+            }).catch(function(err) { done(err); });
+        });
+
+        it('returns an empty list if the user does not own any boards', function(done) {
+            models.Board.getOwned(users[1]).then(function(boards) {
+                boards.should.have.length(0);
+                done();
+            }).catch(function(err) { done(err); });
+        });
+
+        it('can get the list of boards a user just participates in but does not own them', function(done) {
+            models.Board.getParticipating(userOwner).then(function(boards) {
+                boards.should.have.length(2);
+                boards[0].name.should.equal('ParticipantBoard1');
+                boards[1].name.should.equal('ParticipantBoard2');
+
+                done();
+            }).catch(function(err) { done(err); });
+        });
+
+        it('returns an empty list if the user does not participate in any other board', function(done) {
+            models.Board.getParticipating(users[1]).then(function(boards) {
+                boards.should.have.length(0);
+                done();
+            }).catch(function(err) { done(err); });
+        });
+    })
 });

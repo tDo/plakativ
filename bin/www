@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 var debug  = require('debug')('app4:server');
 var http   = require('http');
 var config = require(__dirname + '/../config')();

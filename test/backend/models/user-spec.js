@@ -1,5 +1,5 @@
 process.env.NODE_ENV = 'test';
-require('should');
+var should  = require('should');
 var helpers = require(__dirname + '/../helpers');
 var models  = require(__dirname + '/../../../models');
 
@@ -90,7 +90,8 @@ describe('Users', function() {
         it('does encrypt the password', function(done){
             var plainPassword = 'testpassword';
             models.User.make({ name: 'testuser', password: plainPassword }).then(function(user) {
-                user.password.should.not.equal(plainPassword);
+                var values = user.get({ role: 'system'});
+                values.password.should.not.equal(plainPassword);
                 done();
             }).catch(function(err) { done(err); });
         });

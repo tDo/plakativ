@@ -1,9 +1,10 @@
-var Promise   = require('bluebird');
-var bcrypt    = require('bcrypt');
-var validator = require('validator');
-var Sequelize = require('sequelize');
-var sequelize = require(__dirname + '/sequelize')();
-var helpers   = require(__dirname + '/helpers');
+var Promise             = require('bluebird');
+var bcrypt              = require('bcrypt');
+var validator           = require('validator');
+var Sequelize           = require('sequelize');
+var sequelize           = require(__dirname + '/sequelize')();
+var ssaclAttributeRoles = require('ssacl-attribute-roles');
+var helpers             = require(__dirname + '/helpers');
 
 var User = sequelize.define('User', {
     name: {
@@ -15,7 +16,13 @@ var User = sequelize.define('User', {
             isAlphanumeric: { msg: 'Username may only consist of letters and numbers'}
         }
     },
-    password: { type: Sequelize.STRING, allowNull: false }
+    password: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        roles: {
+            system: true
+        }
+    }
 }, {
     classMethods: {
         /**
@@ -43,7 +50,8 @@ var User = sequelize.define('User', {
 
                 // Pre-build instance and validate it
                 var user = User.build(userData);
-                user.validate().then(function(err) {
+                user.validate()
+                    .then(function(err) {
                     if (err) { return reject(err); }
                     user.setPassword(userData.password)
                         .then(function() { return user.save(); })
@@ -68,7 +76,8 @@ var User = sequelize.define('User', {
             return User.find({ where: { name: username }}).then(function(user) {
                 return new Promise(function(resolve, reject) {
                     if (user === null) { return reject(new Error('Could not find a user with the given name')); }
-                    bcrypt.compare(password, user.password, function(err, res) {
+                    var values = user.get({ role: 'system' });
+                    bcrypt.compare(password, values.password, function(err, res) {
                         if (err) { return reject(new Error('Password is invalid')); }
                         if (!res) { return reject(new Error('Password is invalid')); }
                         resolve(user);
@@ -104,6 +113,10 @@ var User = sequelize.define('User', {
         }
     }
 });
+
+// Provide handler for specific access-roles we might need
+ssaclAttributeRoles(sequelize);
+ssaclAttributeRoles(User);
 
 module.exports = User;
 

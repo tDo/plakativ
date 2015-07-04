@@ -1,39 +1,47 @@
-process.env.NODE_ENV = 'test';
+var express        = require('express');
+var expressSession = require('express-session');
+var cookieParser   = require('cookie-parser');
+var bodyParser     = require('body-parser');
+var passport       = require('passport');
+var LocalStrategy  = require('passport-local').Strategy;
+var routes         = require(__dirname + '/routes');
+var models         = require(__dirname + '/models');
+var sequelize      = models.sequelize();
 
-var express       = require('express');
-var bodyParser    = require('body-parser');
-var passport      = require('passport');
-var LocalStrategy = require('passport-local').Strategy;
-var routes        = require(__dirname + '/routes');
-var models        = require(__dirname + '/models');
-var sequelize     = models.sequelize();
-
-function init() {
+function init(config) {
     // Testwise create our database here
-    sequelize.sync({ force: true });
+    //sequelize.sync({ force: true });
 
     // Create actual express application instance
     var app = express();
 
-    // Register some body-parsers
+    // Register some parsers
     app.use(bodyParser.json());
-    app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(bodyParser.urlencoded({ extended: false }));
+    app.use(cookieParser());
+
+    // Express session-handling
+    app.use(expressSession({
+        secret: 'change me to awesome config',
+        resave: false,
+        saveUninitialized: false
+    }));
+
 
     // Configure authentication-provider
     // - Initialize and bind to express
     app.use(passport.initialize());
+    // - Initialize passport session-handler
+    app.use(passport.session());
 
     // - Configure local credentials validation handler
     passport.use(new LocalStrategy(
         function(username, password, done) {
-            models.User.byCredentials({ name: username, password: password})
+            models.User.findByCredentials(username, password)
                 .then(function(user) { return done(null, user); })
-                .error(function(err) { done(err); });
+                .error(function(err) { return done(null, false, err.toString()); });
         }
     ));
-
-    // - Initialize passport session-handler
-    app.use(passport.session());
 
     // - Configure session storage/retrieval
     passport.serializeUser(function(user, done) {
@@ -47,8 +55,12 @@ function init() {
 
 
     // Bind routes
-    // - API
-    app.use('/api', routes.api);
+    app.use('/users',  routes.users);
+    app.use('/boards', routes.boards);
+
+    app.get('/', function(req, res) {
+        res.send('The server!');
+    });
 
     return app;
 }

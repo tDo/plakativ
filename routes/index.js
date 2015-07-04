@@ -1,5 +1,4 @@
-var api = require(__dirname + '/api');
-
 module.exports = {
-    api: api
+    users:  require(__dirname + '/users'),
+    boards: require(__dirname + '/boards')
 };
