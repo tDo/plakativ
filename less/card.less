@@ -1,0 +1,30 @@
+// Styles for the card-element
+@import "includes/variables.less";
+
+:host {
+  position: relative;
+  display: block;
+  margin: 10px 0;
+  padding: 0;
+  background-color: @background-card;
+  border-bottom: 2px solid darken(@background-card, 25%);
+}
+
+p {
+  padding: 5px;
+}
+
+footer {
+  .information {
+    width: 100%;
+    padding: 5px;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    .group > * {
+      margin-right: 2px;
+    }
+  }
+}

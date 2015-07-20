@@ -1,0 +1,51 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="user-data.html">
+<link rel="import" href="board-top-bar.html">
+<link rel="import" href="column.html">
+
+<dom-module id="board-element">
+    <link rel="import" type="css" href="/css/board.css">
+
+    <template>
+        <user-data id="fnord"></user-data>
+        <iron-ajax
+            auto
+            url           = "/boards/foo"
+            handle-as     = "json"
+            last-response = "{{board}}"></iron-ajax>
+
+        <div class="board">
+            <board-top-bar-element board="{{board}}"></board-top-bar-element>
+
+            <div class="wrapper">
+                <div class="columns">
+                    <template is="dom-repeat" items="{{board.Columns}}">
+                        <column-element column="{{item}}"></column-element>
+                    </template>
+                </div>
+
+                <div class="sidebar">
+                    I am a sidebar!
+                </div>
+            </div>
+
+        </div>
+
+    </template>
+
+    <script>
+        Polymer({
+            is: 'board-element',
+            properties: {
+                board: Object
+            },
+
+            ready: function() {
+                this.$.fnord.login('foo', 'bar');
+                this.user = this.$.fnord.user;
+                console.log(this.user);
+            }
+        });
+    </script>
+</dom-module>

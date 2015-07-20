@@ -53,6 +53,11 @@ function init(config) {
         .error(function(err) { done(err); });
     });
 
+    // Serving static files
+    // Bower-components
+    app.use('/bower_components', express.static(__dirname + '/bower_components'));
+    // General public
+    app.use(express.static(__dirname + '/public'));
 
     // Bind routes
     app.use('/users',  routes.users);

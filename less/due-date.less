@@ -1,0 +1,19 @@
+// Holds styles for the due-date-element
+@import "includes/variables.less";
+
+:host {
+  position: relative;
+}
+
+.due-date {
+  display: inline-block;
+  font-size: @font-size;
+
+  &.due-date-small {
+    font-size: @font-size-small;
+  }
+
+  .fa-calendar-o {
+    margin-right: 2px;
+  }
+}

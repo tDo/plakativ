@@ -1,0 +1,52 @@
+// Holds styles for the task-bar-element
+@import "includes/variables.less";
+
+.task-bar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: @font-size + 2;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  text-align: center;
+  background-color: @background-task-bar;
+  font-size: @font-size;
+  color: @color-task-bar;
+
+  &.task-bar-small {
+    height: @font-size-small + 2;
+    font-size: @font-size-small;
+  }
+
+  .percentage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: @background-task-bar-percentage;
+    z-index: 5;
+  }
+
+  .fa-check-square-o {
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    z-index: 6;
+  }
+
+  .counter {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    z-index: 6;
+  }
+
+  .counter .inner {
+    position: relative;
+    left: -50%;
+  }
+}

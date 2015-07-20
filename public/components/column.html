@@ -1,0 +1,46 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="/bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="card.html">
+<link rel="import" href="estimate.html">
+
+<dom-module id="column-element">
+    <link rel="import" type="css" href="/css/column.css">
+
+    <template>
+        <header>
+            <h2>{{column.title}}</h2>
+            <div class="group">
+                <estimate-element estimate="{{computeTotalEstimate(column.Cards)}}"></estimate-element>
+            </div>
+        </header>
+
+        <div class="cards">
+            <template is="dom-repeat" items="{{column.Cards}}">
+                <card-element card="{{item}}"></card-element>
+            </template>
+        </div>
+
+        <footer>
+            <button><i class="fa fa-plus"></i> Add card&hellip;</button>
+        </footer>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'column-element',
+            properties: {
+                column: Object
+            },
+
+            computeTotalEstimate: function(cards) {
+                return cards
+                        .map(function(card) { return card.estimate || 0; })
+                        .reduce(function(prev, curr, index, arr) {
+                            prev = prev < 0 ? 0 : prev;
+                            curr = curr < 0 ? 0 : curr;
+                            return prev + curr;
+                        });
+            }
+        });
+    </script>
+</dom-module>

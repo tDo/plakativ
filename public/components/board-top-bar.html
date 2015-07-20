@@ -1,0 +1,66 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+
+<dom-module id="board-top-bar-element">
+    <style>
+        :host {
+            position: fixed;
+            width: 100%;
+            margin: 0;
+            height: 50px;
+        }
+        .board-top-bar {
+            padding: 5px 10px 0 10px;
+            height: 50px;
+
+            box-sizing: border-box;
+            color: #ececec;
+            background-color: #47788b;
+            line-height: 20px;
+        }
+        .dashboard {
+            display: inline-block;
+            width: 40px;
+            margin-right: 10px;
+            font-size: 36px;
+            vertical-align: bottom;
+        }
+        .stack {
+            display: inline-block;
+            vertical-align: bottom;
+        }
+
+        h1 {
+            padding: 0;
+            margin: 0;
+        }
+
+        .fa-lock {
+            margin-right: 2px;
+        }
+    </style>
+
+    <template>
+        <div class="board-top-bar">
+            <div class="dashboard">
+                <i class="fa fa-th"></i>
+            </div>
+
+            <div class="stack">
+                <h1>{{board.name}}</h1>
+                <div class="visibility">
+                    <i class="fa fa-lock"></i><span>Private</span>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'board-top-bar-element',
+            properties: {
+                board: Object
+            }
+        });
+    </script>
+</dom-module>

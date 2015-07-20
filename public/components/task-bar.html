@@ -1,0 +1,56 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="size-behavior.html">
+
+<dom-module id="task-bar-element">
+    <link rel="import" type="css" href="/css/task-bar.css">
+    <template>
+        <template is="dom-if" if="{{tasks}}">
+            <div class$="{{computeSizeClassName('task-bar')}}">
+                <i class="fa fa-check-square-o"></i>
+                <div class="counter"><span class="inner"><span>{{computeDoneCount(tasks)}}</span>/<span>{{computeTotalCount(tasks)}}</span></span></div>
+                <div class="percentage" style$="{{computePercentageStyle(tasks)}}"></div>
+            </div>
+        </template>
+
+    </template>
+
+    <script>
+        var computeDoneCount = function(tasks) {
+            if (!Array.isArray(tasks)) { return 0; }
+            return tasks
+                    .map(function(task) { return task.done ? 1 : 0; })
+                    .reduce(function(prev, curr, index, arr) {
+                        return prev + curr;
+                    });
+        };
+
+        var computeTotalCount = function(tasks) {
+            if (!Array.isArray(tasks)) { return 0; }
+            return tasks.length;
+        };
+
+        var computePercentage = function(tasks) {
+            var total = computeTotalCount(tasks);
+            if (total <= 0) { return 0; }
+            var done = computeDoneCount(tasks);
+            if (done <= 0) { return 0; }
+
+            return done / total * 100.0;
+        };
+
+        Polymer({
+            is: 'task-bar-element',
+            behaviors: [SizeBehavior],
+            properties: {
+                tasks: Array
+            },
+
+            computeDoneCount: computeDoneCount,
+            computeTotalCount: computeTotalCount,
+            computePercentageStyle: function(tasks) {
+                var per = computePercentage(tasks);
+                return 'width: ' + per + '%';
+            }
+        });
+    </script>
+</dom-module>

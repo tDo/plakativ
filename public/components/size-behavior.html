@@ -1,0 +1,12 @@
+<script>
+    SizeBehavior = {
+        computeSizeClassName: function(name) {
+            var classNames = name;
+            if (this.hasAttribute('small')) {
+                classNames = classNames + ' ' + name + '-small';
+            }
+
+            return classNames;
+        }
+    }
+</script>

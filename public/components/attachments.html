@@ -1,0 +1,28 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+
+<dom-module id="attachments-element">
+    <style>
+        :host {
+            position: relative;
+            display: inline-block;
+        }
+
+        .fa-paperclip {
+            margin-right: 2px;
+        }
+
+        .count {
+            font-size: 10px;
+        }
+
+    </style>
+    <template>
+        <i class="fa fa-paperclip"></i><span class="count">2</span>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'attachments-element'
+        });
+    </script>
+</dom-module>

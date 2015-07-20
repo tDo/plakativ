@@ -1,0 +1,24 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="size-behavior.html">
+
+<dom-module id="estimate-element">
+    <link rel="import" type="css" href="/css/estimate.css">
+
+    <template>
+        <template is="dom-if" if="{{estimate}}">
+            <div class$="{{computeSizeClassName('estimate')}}">
+                <i class="fa fa-gavel"></i><span>{{estimate}}</span>d
+            </div>
+        </template>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'estimate-element',
+            behaviors: [SizeBehavior],
+            properties: {
+                estimate: Number
+            }
+        });
+    </script>
+</dom-module>
