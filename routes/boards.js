@@ -26,21 +26,6 @@ router.param('cardId', function(req, res, next, id) {
 
 router.route('/')
     .get(function(req, res) {
-        // TODO: Check logged in
-
-        var owned;
-        models.Board.getOwned(req.user)
-            .then(function(boards) {
-                owned = boards;
-                return models.Board.getParticipating(req.user); })
-
-            .then(function(boards) {
-                res.json({ value: { owned: owned, participating: boards }});
-
-            }).catch(function() {
-                res.status(500).json({ value: null, error_message: 'Failed to load boardlist' });
-
-            });
     })
 
     .post(function(req, res, next) {

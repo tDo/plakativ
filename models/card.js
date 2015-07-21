@@ -91,7 +91,7 @@ var Card = sequelize.define('Card', {
                 // Now check for the board (Is the user participating?)
                 that.getColumn()
                     .then(function(column) { return column.getBoard(); })
-                    .then(function(board) { return board.isParticipating(user); })
+                    .then(function(board) { return board.hasUser(user); })
                     .then(function(isParticipating) {
                         if (!isParticipating) { return reject(new Error('The user is not participating in the board')); }
                         return that.addAssignee(user);
@@ -120,8 +120,45 @@ var Card = sequelize.define('Card', {
             });
         },
 
+        /**
+         * Assign a label (Which must belong to the same board as the card) to the card
+         * @param label which shall be assigned
+         * @returns {bluebird|exports|module.exports}
+         */
         assignLabel: function(label) {
-            throw new Error('Not implemented');
+            var that = this;
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.Label.isLabel(label)) { return reject(new Error('Invalid label')); }
+                // Now check for the board (Is the label part of this board?)
+                that.getColumn()
+                    .then(function(column) { return column.getBoard(); })
+                    .then(function(board) { return board.hasLabel(label); })
+                    .then(function(isPart) {
+                        if (!isPart) { return reject(new Error('The label does not belong to the board')); }
+                        return that.addLabel(label);
+                    })
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
+            });
+        },
+
+        /**
+         * Check if a specific label is assigned to this card. It will pass on
+         * an "isAssigned" boolean-parameter to the resolve-handler of the returned
+         * promise instead of just failing. The reject part will only be called on
+         * actual real errors.
+         * @param label to check for assignment
+         * @returns {bluebird|exports|module.exports}
+         */
+        isAssignedLabel: function(label) {
+            var that = this;
+
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.Label.isLabel(label)) { return reject(new Error('Invalid label')); }
+                that.hasLabel(label)
+                    .then(function(isAssigned) { resolve(isAssigned); })
+                    .catch(function(err) { reject(err); });
+            });
         },
 
         /**

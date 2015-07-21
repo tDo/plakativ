@@ -24,9 +24,9 @@ describe('Boards', function() {
     });
 
     describe('Creation', function() {
-        it('should not accept board-creation without an owner', function(done) {
+        it('should not accept board-creation without a user', function(done) {
             models.Board.make(null, { name: 'Testboard' })
-                .then(function() { done(new Error('Board created even without valid owner')); })
+                .then(function() { done(new Error('Board created even without valid user')); })
                 .catch(function(err) {
                     err.message.should.match(/Invalid user/);
                     done();
@@ -55,42 +55,19 @@ describe('Boards', function() {
                 .catch(function() { done(); });
         });
 
-        it('should create a board', function(done) {
+        it('should create a board and make the user an admin', function(done) {
             models.Board.make(userOwner, { name: 'Testboard'})
                 .then(function(board) {
                     models.Board.isBoard(board).should.equal(true);
                     board.name.should.equal('Testboard');
                     board.private.should.equal(true);
-                    return board.getOwner();
+                    return board.getUsers();
                 })
-                .then(function(owner) {
-                    owner.id.should.equal(userOwner.id);
-                    owner.name.should.equal(userOwner.name);
-                    done();
-                })
-                .catch(function(err) { done(err); });
-        });
-
-        it('should create multiple boards with the same owner', function(done) {
-            models.Board.make(userOwner, { name: 'Testboard'})
-                .then(function(board) {
-                    board.name.should.equal('Testboard');
-                    board.private.should.equal(true);
-                    return board.getOwner();
-                })
-                .then(function(owner) {
-                    owner.id.should.equal(userOwner.id);
-                    owner.name.should.equal(userOwner.name);
-                    return models.Board.make(userOwner, { name: 'Testboard2'});
-                })
-                .then(function(board) {
-                    board.name.should.equal('Testboard2');
-                    board.private.should.equal(true);
-                    return board.getOwner();
-                })
-                .then(function(owner) {
-                    owner.id.should.equal(userOwner.id);
-                    owner.name.should.equal(userOwner.name);
+                .then(function(u) {
+                    var user = u[0];
+                    user.id.should.equal(userOwner.id);
+                    user.name.should.equal(userOwner.name);
+                    user.BoardUsers.admin.should.equal(true);
                     done();
                 })
                 .catch(function(err) { done(err); });
@@ -106,33 +83,7 @@ describe('Boards', function() {
         });
     });
 
-
-    describe('Ownership', function() {
-        it('should know that a user is the owner', function(done) {
-            models.Board.make(userOwner, { name: 'Testboard' })
-                .then(function(board) {
-                    return board.isOwner(userOwner); })
-                .then(function(isOwner) {
-                    isOwner.should.equal(true);
-                    done();
-                })
-                .catch(function(err) { done(err); });
-        });
-
-        it('should know that a user is not the owner', function(done) {
-            models.Board.make(userOwner, { name: 'Testboard'})
-                .then(function(board) {
-                    return board.isOwner(users[0]); })
-                .then(function(isOwner) {
-                    isOwner.should.equal(false);
-                    done();
-                })
-                .catch(function(err) { done(err); });
-        });
-    });
-
-
-    describe('Participants', function() {
+    describe('Users', function() {
         var board;
         beforeEach(function(done) {
             models.Board.make(userOwner, { name: 'Testboard'}).then(function(b) {
@@ -141,36 +92,41 @@ describe('Boards', function() {
             }).catch(function(err) { done(err); });
         });
 
-        it('should be able to add participants to a board', function(done) {
-            board.addParticipant(users[0])
-                .then(function() { return board.addParticipant(users[1]); })
-                .then(function() { return board.addParticipant(users[2]); })
-                .then(function() { return board.getParticipants(); })
-                .then(function(participants) {
-                    participants.should.have.length(3);
-                    participants[0].id.should.equal(users[0].id);
-                    participants[1].id.should.equal(users[1].id);
-                    participants[2].id.should.equal(users[2].id);
+        it('should be able to add users to a board', function(done) {
+            board.addUser(users[0])
+                .then(function() { return board.addUser(users[1], { admin: false }); })
+                .then(function() { return board.addUser(users[2], { admin: true }); })
+                .then(function() { return board.getUsers(); })
+                .then(function(u) {
+                    u.length.should.equal(4);
+                    u[0].id.should.equal(userOwner.id);
+                    u[0].BoardUsers.admin.should.equal(true);
+                    u[1].id.should.equal(users[0].id);
+                    u[1].BoardUsers.admin.should.equal(false);
+                    u[2].id.should.equal(users[1].id);
+                    u[2].BoardUsers.admin.should.equal(false);
+                    u[3].id.should.equal(users[2].id);
+                    u[3].BoardUsers.admin.should.equal(true);
                     done();
                 })
                 .catch(function(err) { done(err); });
         });
 
-        it('should add a participant only once', function(done) {
-            board.addParticipant(users[0])
-                .then(function() { return board.addParticipant(users[0]); })
-                .then(function() { return board.getParticipants(); })
-                .then(function(participants) {
-                    participants.should.have.length(1);
-                    participants[0].id.should.equal(users[0].id);
+        it('should add a user only once', function(done) {
+            board.addUser(users[0])
+                .then(function() { return board.addUser(users[0]); })
+                .then(function() { return board.getUsers(); })
+                .then(function(u) {
+                    u.length.should.equal(2);
+                    u[1].id.should.equal(users[0].id);
                     done();
                 })
                 .catch(function(err) { done(err); });
         });
 
-        it('should be able to verify that a user is a participant of a board', function(done) {
-            board.addParticipant(users[0])
-                .then(function() { return board.isParticipating(users[0]); })
+        it('should be able to verify that a user is participating in a board', function(done) {
+            board.addUser(users[0])
+                .then(function() { return board.hasUser(users[0]); })
                 .then(function(isParticipating) {
                     isParticipating.should.equal(true);
                     done();
@@ -179,8 +135,8 @@ describe('Boards', function() {
         });
 
         it('should be able to verify that a user is no participant of a board', function(done) {
-            board.addParticipant(users[0])
-                .then(function() { return board.isParticipating(users[1]); })
+            board.addUser(users[0])
+                .then(function() { return board.hasUser(users[1]); })
                 .then(function(isParticipating) {
                     isParticipating.should.equal(false);
                     done();
@@ -188,72 +144,47 @@ describe('Boards', function() {
                 .catch(function(err) { done(err); });
         });
 
-        it('should be able to also acknowledge participation of the boards owner', function(done) {
-            board.isParticipating(userOwner)
+        it('should remove a user from a board', function(done) {
+            board.addUser(users[0])
+                .then(function() { return board.removeUser(users[0]); })
+                .then(function() { return board.hasUser(users[0]); })
                 .then(function(isParticipating) {
-                    isParticipating.should.equal(true);
+                    isParticipating.should.equal(false);
                     done();
                 })
                 .catch(function(err) { done(err); });
         });
 
-        it('should remove a participant from the board', function(done) {
-            board.addParticipant(users[0])
-                .then(function() { return board.removeParticipant(users[0]); })
-                .then(function() { return board.getParticipants(); })
-                .then(function(participants) {
-                    participants.should.have.length(0);
+        it('should promote a user to admin', function(done) {
+            board.addUser(users[0], { admin: false })
+                .then(function() { return board.getUsers() })
+                .then(function(u) {
+                    u[1].BoardUsers.admin.should.equal(false);
+                    u[1].BoardUsers.admin = true;
+                    return u[1].BoardUsers.save();
+                })
+                .then(function() { return board.getUsers(); })
+                .then(function(u) {
+                    u[1].BoardUsers.admin.should.equal(true);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should degrade an admin to user', function(done) {
+            board.addUser(users[0], { admin: true })
+                .then(function() { return board.getUsers() })
+                .then(function(u) {
+                    u[1].BoardUsers.admin.should.equal(true);
+                    u[1].BoardUsers.admin = false;
+                    return u[1].BoardUsers.save();
+                })
+                .then(function() { return board.getUsers(); })
+                .then(function(u) {
+                    u[1].BoardUsers.admin.should.equal(false);
                     done();
                 })
                 .catch(function(err) { done(err); });
         });
     });
-
-    describe('Querying boardlists', function() {
-
-        beforeEach(function(done) {
-            models.Board.make(userOwner, { name: 'OwnedBoard1' })
-                .then(function() { return models.Board.make(userOwner, { name: 'OwnedBoard2' }); })
-                .then(function() { return models.Board.make(users[0], { name: 'ParticipantBoard1' }); })
-                .then(function(board) { return board.addParticipant(userOwner); })
-                .then(function() { return models.Board.make(users[0], { name: 'ParticipantBoard2' }); })
-                .then(function(board) { return board.addParticipant(userOwner); })
-                .then(function() { done(); })
-                .catch(function(err) { done(err); });
-        });
-
-        it('can get the list of owned boards', function(done) {
-            models.Board.getOwned(userOwner).then(function(boards) {
-                boards.should.have.length(2);
-                boards[0].name.should.equal('OwnedBoard1');
-                boards[1].name.should.equal('OwnedBoard2');
-
-                done();
-            }).catch(function(err) { done(err); });
-        });
-
-        it('returns an empty list if the user does not own any boards', function(done) {
-            models.Board.getOwned(users[1]).then(function(boards) {
-                boards.should.have.length(0);
-                done();
-            }).catch(function(err) { done(err); });
-        });
-
-        it('can get the list of boards a user just participates in but does not own them', function(done) {
-            models.Board.getParticipating(userOwner).then(function(boards) {
-                boards.should.have.length(2);
-                boards[0].name.should.equal('ParticipantBoard1');
-                boards[1].name.should.equal('ParticipantBoard2');
-
-                done();
-            }).catch(function(err) { done(err); });
-        });
-
-        it('returns an empty list if the user does not participate in any other board', function(done) {
-            models.Board.getParticipating(users[1]).then(function(boards) {
-                boards.should.have.length(0);
-                done();
-            }).catch(function(err) { done(err); });
-        });
-    })
 });

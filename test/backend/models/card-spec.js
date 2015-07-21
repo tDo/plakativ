@@ -8,19 +8,23 @@ describe('Cards', function() {
     var userOther;
     var board;
     var columns;
+    var labels;
 
     beforeEach(function(done) {
         columns = [];
+        labels = [];
 
         // Create database, testusers and a board and 2 columns
         helpers.createTestDatabase()
             .then(function() { return models.User.make({ name: 'Testuser', password: 'password'}); })
             .then(function(user) { userOwner = user; return models.User.make({ name: 'OtherUser1', password: 'password'}); })
             .then(function(user) { userOther = user; return models.Board.make(userOwner, { name: 'Testboard'}); })
-            .then(function(b) { board = b; return b.addParticipant(userOther); })
+            .then(function(b) { board = b; return b.addUser(userOther); })
             .then(function() { return models.Column.make(board, { title: 'Col A'}); })
             .then(function(col) { columns.push(col); return models.Column.make(board, { title: 'Col B'}); })
-            .then(function(col) { columns.push(col); done(); })
+            .then(function(col) { columns.push(col); return models.Label.make(board, { title: 'Label A', color: '#fff'}); })
+            .then(function(label) { labels.push(label); return models.Label.make(board, { title: 'Label B', color: '#000'}); })
+            .then(function(label) { labels.push(label); done(); })
             .catch(function(err) { done(err); });
     });
 
@@ -263,8 +267,6 @@ describe('Cards', function() {
 
     describe('User assignment', function() {
         beforeEach(function(done) {
-            // Create a few posts for both columns
-            // First column
             return models.Card.make(columns[0], { title: 'CardAA' })
                 .then(function() { done(); })
                 .catch(function(err) { done(err); });
@@ -370,7 +372,7 @@ describe('Cards', function() {
                     return card.assignUser(userOwner);
                 })
                 .then(function() { return card.assignUser(userOther); })
-                .then(function() { return board.removeParticipantFromAllCards(userOther); })
+                .then(function() { return board.removeUserFromAllCards(userOther); })
                 .then(function() { return card.getAssignees(); })
                 .then(function(users) {
                     users.length.should.equal(1);
@@ -380,5 +382,121 @@ describe('Cards', function() {
         });
     });
 
-    describe('Label assignment', function() {});
+    describe('Label assignment', function() {
+        beforeEach(function(done) {
+            return models.Card.make(columns[0], { title: 'CardAA' })
+                .then(function() { done(); })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should assign a label to a card', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.assignLabel(labels[0]);
+                })
+                .then(function() { return card.assignLabel(labels[1]); })
+                .then(function() { return card.getLabels(); })
+                .then(function(l) {
+                    l.length.should.equal(2);
+
+                    l[0].id.should.equal(labels[0].id);
+                    l[1].id.should.equal(labels[1].id);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should assign a label only once', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.assignLabel(labels[0]);
+                })
+                .then(function() { return card.assignLabel(labels[0]); })
+                .then(function() { return card.getLabels(); })
+                .then(function(l) {
+                    l.length.should.equal(1);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should verify that a label is assigned to a card', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.addLabel(labels[0]);
+                })
+                .then(function() { return card.isAssignedLabel(labels[0]); })
+                .then(function(isAssigned) {
+                    isAssigned.should.equal(true);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should not assign a label which does not belong to the same board as the card', function(done) {
+            var labelNotPart;
+
+            models.Board.make(userOwner, { name: 'Some other board'})
+                .then(function(b) { return models.Label.make(b, { title: 'NotPart', color: '#f0f0f0' }); })
+                .then(function(label) {
+                    labelNotPart = label;
+                    return models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }});
+                })
+                .then(function(card) { return card.assignLabel(labelNotPart); })
+                .then(function() { done(new Error('Did not fail label assignment')); })
+                .catch(function(err) {
+                    err.message.should.match(/The label does not belong to the board/);
+                    done();
+                });
+        });
+
+        it('should not assign a non-label object', function(done) {
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(card) { return card.assignLabel({ foo: 'bar'}); })
+                .then(function() { done(new Error('Assigned a non-label instance')); })
+                .catch(function(err) {
+                    err.message.should.match(/Invalid label/);
+                    done();
+                });
+        });
+
+        it('should remove a label-assignment', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.assignLabel(labels[0]);
+                })
+                .then(function() { return card.removeLabel(labels[0]); })
+                .then(function() { return card.getLabels(); })
+                .then(function(l) {
+                    l.length.should.equal(0);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should remove a label-assignment from all cards in the board', function(done) {
+            var card;
+            models.Card.findOne({ where: { title: 'CardAA', ColumnId: columns[0].id }})
+                .then(function(c) {
+                    card = c;
+                    return card.assignLabel(labels[0]);
+                })
+                .then(function() { return card.assignLabel(labels[1]); })
+                .then(function() { return board.removeLabelFromAllCards(labels[0]); })
+                .then(function() { return card.getLabels(); })
+                .then(function(l) {
+                    l.length.should.equal(1);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+    });
 });

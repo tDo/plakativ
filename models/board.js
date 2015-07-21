@@ -16,32 +16,6 @@ var Board = sequelize.define('Board', {
     closed: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false }
 }, {
 
-    scopes: {
-        /**
-         * Scope to retrieve boards owned by a specific user
-         * @param userId Of the user to retrieve the boards for
-         * @returns {Object}
-         */
-        owned: function(userId) {
-            return {
-                where: { OwnerId: userId }
-            }
-        },
-
-        /**
-         * Scope to retrieve boards the user is participating in (Not inlcuding owned boards)
-         * @param userId Of the user to receive the boardslist for
-         * @returns {Object}
-         */
-        participating: function(userId) {
-            return {
-                include: [
-                    { model: sequelize.models.User, as: 'Participants', where: { id: userId }}
-                ]
-            }
-        }
-    },
-
     classMethods: {
         /**
          * Helper function checks if the provided object is a Board model instance
@@ -56,7 +30,7 @@ var Board = sequelize.define('Board', {
 
         /**
          * Create a new board-instance, which is bound to a specific owner.
-         * @param user which is added as the owner of this board
+         * @param user which is added as the first admin of this board
          * @param boardData holding further board-information
          * @returns {Promise}
          */
@@ -70,43 +44,14 @@ var Board = sequelize.define('Board', {
                 Board.create(boardData)
                     .then(function(b) {
                         board = b;
-                        return board.setOwner(user);
+                        return board.addUser(user, { admin: true });
                     })
                     .then(function() { resolve(board); })
                     .catch(function(err) { reject(err); });
             });
-        },
+        }//,
 
-        /**
-         * Get a list of boards the user owns
-         * @param user to retrieve the owned boards for
-         * @returns {Promise}
-         */
-        getOwned: function(user) {
-            return new Promise(function(resolve, reject) {
-                if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
-                Board.scope({ method: ['owned', user.id] }).findAll()
-                    .then(function(boards) { resolve(boards); })
-                    .catch(function(err) { reject(err); });
-            });
-        },
-
-        /**
-         * Get a list of boards the user is a member of (e.g. participating) but he does
-         * not own. Note that unlike the isParticipating function this one does NOT include
-         * boards owned by the user to make such separation in retrieval a bit simpler.
-         * @param user for which to retrieve boards he is participating in
-         * @returns {Promise}
-         */
-        getParticipating: function(user) {
-            return new Promise(function(resolve, reject) {
-                if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
-                Board.scope({ method: ['participating', user.id] }).findAll()
-                    .then(function(boards) { resolve(boards); })
-                    .catch(function(err) { reject(err); });
-            });
-        },
-
+        /*
         findEager: function(boardId) {
             return Board.findOne({ where: { id: boardId },
                 include: [
@@ -122,60 +67,10 @@ var Board = sequelize.define('Board', {
                     ]}
                 ]
             });
-        }
+        }*/
     },
 
     instanceMethods: {
-        /**
-         * Check if the provided user is the owner of this board. Note that the
-         * resulting promise-chain will be called with .then(function(isOwner) {...})
-         * @param user which is checked for ownership
-         * @returns {Promise}
-         */
-        isOwner: function(user) {
-            var that = this;
-
-            return new Promise(function(resolve, reject) {
-                if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
-                that.getOwner()
-                    .then(function(owner) {
-                        if (owner === null) { return resolve(false); }
-                        resolve(owner.id === user.id);
-                    })
-                    .catch(function(err) {
-                        reject(err);
-                    });
-            });
-        },
-
-        /**
-         * Checks if a user participates in this board. Unlike the automatically created
-         * hasParticipant(...) method of sequelize, this instance-method will also take the
-         * owner into account, which is normally not part of the participant-list
-         * @param user
-         * @returns {Promise}
-         */
-        isParticipating: function(user) {
-            var that = this;
-
-            return new Promise(function(resolve, reject) {
-                if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
-                that.hasParticipant(user)
-                    .then(function(participating) {
-                        if (!participating) {
-                            // Not a default user, do owner check now...
-                            that.isOwner(user)
-                                .then(function(isOwner) { resolve(isOwner); })
-                                .catch(function(err) { reject(err); });
-                        } else {
-                            // Seems to be a participating user
-                            resolve(true);
-                        }
-                    })
-                    .catch(function(err) { reject(err); });
-            });
-        },
-
         /**
          * This helper-function will attempt to remove the relation of card <-> user assignments from all
          * cards present in this board. This function will typically be called before removing a participant
@@ -183,7 +78,7 @@ var Board = sequelize.define('Board', {
          * @param user for whom the cards shall be removed
          * @returns {Promise}
          */
-        removeParticipantFromAllCards: function(user) {
+        removeUserFromAllCards: function(user) {
             var that = this;
             return new Promise(function(resolve, reject) {
                 if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
@@ -203,20 +98,48 @@ var Board = sequelize.define('Board', {
                     .then(function() { resolve(); })
                     .catch(function(err) { reject(err); });
             });
+        },
+
+        /**
+         * This helper function will attempt to remove a label from all cards it has been assigned to in this
+         * board. This function will typically be called before removing a label to clean up presence.
+         * @param label which shall be removed from all cards
+         * @returns {bluebird|exports|module.exports}
+         */
+        removeLabelFromAllCards: function(label) {
+            var that = this;
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.Label.isLabel(label)) { return reject(new Error('Invalid label')); }
+                // So, we are doing it raw since this seems the most viable way to execute this query...
+                var query = 'DELETE FROM CardLabels ' +
+                            'WHERE CardLabels.CardId IN (' +
+                            '  SELECT Cards.id FROM Cards ' +
+                            '  JOIN Columns ON (Cards.ColumnId = Columns.id) ' +
+                            '  WHERE Columns.BoardId = ? ' +
+                            ') ' +
+                            'AND CardLabels.LabelId = ?';
+
+                sequelize.query(query, {
+                    replacements: [ that.id, label.id ],
+                    type: sequelize.QueryTypes.BULKDELETE
+                })
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
+            });
         }
     }
 });
 
 module.exports = Board;
 
-var User   = require(__dirname + '/user');
-var Column = require(__dirname + '/column');
-var Label  = require(__dirname + '/label');
+var User       = require(__dirname + '/user');
+var BoardUsers = require(__dirname + '/board_users');
+var Column     = require(__dirname + '/column');
+var Label      = require(__dirname + '/label');
 
 // Relations
-// A board will have one owner and many participants
-Board.belongsTo(User, { as: 'Owner', foreignKey: 'OwnerId' });
-Board.belongsToMany(User, { as: 'Participants', through: 'BoardParticipants' });
+// A board has many admins and default users
+Board.belongsToMany(User, { through: BoardUsers });
 
 // A board will have many columns
 Board.hasMany(Column, { as: 'Columns' });

@@ -6,9 +6,9 @@ var Label = sequelize.define('Label', {
     title: {
         type: Sequelize.STRING,
         allowNull: false,
+        defaultValue: '',
         validate: {
-            notEmpty: { msg: 'Label title may not be empty'},
-            len: { args: [1, 255], msg: 'Label title is either too long or too short (1..255 characters)' }
+            len: { args: [0, 255], msg: 'Label title is either too long or too short (0..255 characters)' }
         }
     },
 
@@ -16,7 +16,7 @@ var Label = sequelize.define('Label', {
         type: Sequelize.STRING,
         allowNull: false,
         validate: {
-            notEmpty: { msg: 'Color must be set'},
+            notEmpty: { msg: 'Color must be set' },
             isHexCode: function(value) {
                 if (!(/^#(?:[0-9a-f]{3}){1,2}$/i).test(value)) {
                     throw new Error('Color must be a valid hex-color code in either short or long form');
@@ -26,13 +26,38 @@ var Label = sequelize.define('Label', {
     }
 }, {
     classMethods: {
+        /**
+         * Helper function to check if an object is a label and has been persisted to the database
+         * @param obj to check
+         * @returns {boolean}
+         */
         isLabel: function(obj) {
             if (!helpers.isModelOfType(obj, Label)) { return false; }
             return !obj.isNewRecord;
         },
 
+        /**
+         * Create a new label-instance which is bound to a specific board.
+         * @param board the label shall be bound to
+         * @param labelData for the label
+         * @returns {Promise}
+         */
         make: function(board, labelData) {
-            throw new Error('Not implemented');
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.Board.isBoard(board)) { return reject(new Error('Invalid board')); }
+                // Workaround for not null parts
+                labelData.title = labelData.title || '';
+                labelData.color = labelData.color || '';
+
+                var label;
+                Label.create(labelData)
+                    .then(function(l) {
+                        label = l;
+                        return label.setBoard(board);
+                    })
+                    .then(function() { resolve(label); })
+                    .catch(function (err) { reject(err); });
+            });
         }
     }
 });

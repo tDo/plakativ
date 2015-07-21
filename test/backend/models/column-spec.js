@@ -14,7 +14,7 @@ describe('Columns', function() {
             .then(function() { return models.User.make({ name: 'Testuser', password: 'password'}); })
             .then(function(user) { userOwner = user; return models.User.make({ name: 'OtherUser1', password: 'password'}); })
             .then(function(user) { userOther = user; return models.Board.make(userOwner, { name: 'Testboard'}); })
-            .then(function(b) { board = b; return b.addParticipant(userOther); })
+            .then(function(b) { board = b; return b.addUser(userOther); })
             .then(function() { done(); })
             .catch(function(err) { done(err); });
     });
