@@ -23,6 +23,7 @@
 }
 
 header {
+  position: relative;
   width: 100%;
   min-height: 40px;
   padding: 5px;
@@ -31,6 +32,16 @@ header {
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
+
+  .column-drag-handle {
+    display: inline-block;
+    font-size: @font-size + 6px;
+    color: lighten(@color-column, 50%);
+    &:hover {
+      color: @color-column;
+    }
+  }
+
   h2 {
     margin: 0;
   }

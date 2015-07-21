@@ -42,9 +42,48 @@
             },
 
             ready: function() {
-                this.$.fnord.login('foo', 'bar');
-                this.user = this.$.fnord.user;
-                console.log(this.user);
+                //this.$.fnord.login('foo', 'bar');
+                //this.user = this.$.fnord.user;
+                //console.log(this.user);
+
+                var that = this;
+
+                function addColumn(card, index) {
+                    that.splice('board.Columns', index, 0, card);
+                }
+
+                function removeColumn(index) {
+                    that.splice('board.Columns', index, 1);
+                }
+
+                function updateColumnPosition(oldIndex, newIndex) {
+                    var card = that.splice('board.Columns', oldIndex, 1)[0];
+                    addColumn(card, newIndex);
+                }
+
+
+                this.sortableColumns = Sortable.create(this.$$('.columns'), {
+                    group: 'columns',
+                    draggable: 'column-element',
+                    handle: '.column-drag-handle',
+                    ghostClass: 'sortable-ghost',
+                    delay: 100,
+                    scroll: true,
+                    scrollSensitivity: 30,
+                    scrollSpeed: 10,
+
+                    onAdd: function(evt) {
+                        addColumn(evt.item.get('column'), evt.newIndex);
+                    },
+
+                    onRemove: function(evt) {
+                        removeColumn(evt.oldIndex);
+                    },
+
+                    onUpdate: function(evt) {
+                        updateColumnPosition(evt.oldIndex, evt.newIndex);
+                    }
+                });
             }
         });
     </script>

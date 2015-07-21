@@ -8,9 +8,10 @@
 
     <template>
         <header>
+            <i class="fa fa-arrows column-drag-handle"></i>
             <h2>{{column.title}}</h2>
             <div class="group">
-                <estimate-element estimate="{{computeTotalEstimate(column.Cards)}}"></estimate-element>
+                <estimate-element estimate="[[computeTotalEstimate(column.Cards, column.Cards.*)]]"></estimate-element>
             </div>
         </header>
 
@@ -32,10 +33,52 @@
                 column: Object
             },
 
-            computeTotalEstimate: function(cards) {
+            ready: function () {
+                var that = this;
+
+                function addCard(card, newIndex) {
+                    that.splice('column.Cards', newIndex, 0, card);
+                }
+
+                function removeCard(oldIndex) {
+                    that.splice('column.Cards', oldIndex, 1);
+                }
+
+                function updateCardPosition(oldIndex, newIndex) {
+                    var card = that.splice('column.Cards', oldIndex, 1)[0];
+                    addCard(card, newIndex);
+                }
+
+                this.sortableCards = Sortable.create(this.$$('.cards'), {
+                    group: 'cards',
+                    draggable: 'card-element',
+                    ghostClass: 'sortable-ghost',
+                    delay: 100,
+                    scroll: true,
+                    scrollSensitivity: 30,
+                    scrollSpeed: 10,
+
+                    onAdd: function(evt) {
+                        addCard(evt.item.get('card'), evt.newIndex);
+                    },
+
+                    onRemove: function(evt) {
+                        removeCard(evt.oldIndex);
+                    },
+
+                    onUpdate: function(evt) {
+                        updateCardPosition(evt.oldIndex, evt.newIndex);
+                    }
+                });
+            },
+
+            computeTotalEstimate: function (cards, key) {
+                if (cards.length === 0) { return 0; }
                 return cards
-                        .map(function(card) { return card.estimate || 0; })
-                        .reduce(function(prev, curr, index, arr) {
+                        .map(function (card) {
+                            return card.estimate || 0;
+                        })
+                        .reduce(function (prev, curr) {
                             prev = prev < 0 ? 0 : prev;
                             curr = curr < 0 ? 0 : curr;
                             return prev + curr;
