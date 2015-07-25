@@ -4,6 +4,100 @@ var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/sequelize')();
 var helpers   = require(__dirname + '/helpers');
 
+/**
+ * Internal handler which can update columns positioning for a board.
+ * @param board for which the columns shall be reordered.
+ * @param column which shall be placed at a specific position
+ * @param position where the columns shall be placed
+ * @param transaction which shall be used
+ * @returns {bluebird|exports|module.exports}
+ */
+function saveColumnPositions(board, column, position, transaction) {
+    var offset = 1;
+    var index  = 0;
+
+    function handleNext(columns, resolve, reject) {
+        if (index >= columns.length) { return resolve(); }
+        if (position === offset) {
+            // If we found the offset for the current column, place it there
+            saveColumnPosition(column, position, transaction)
+                .then(function() {
+                    offset = offset + 1;
+                    return saveColumnPosition(columns[index], offset, transaction);
+                })
+                .then(function() {
+                    index = index + 1;
+                    offset = offset + 1;
+                    handleNext(columns, resolve, reject);
+                })
+                .catch(function(err) { reject(err); });
+        } else {
+            // If we are at any other offset, just handle the position for that column
+            saveColumnPosition(columns[index], offset, transaction)
+                .then(function() {
+                    index = index + 1;
+                    offset = offset + 1;
+                    handleNext(columns, resolve, reject);
+                })
+                .catch(function(err) { reject(err); });
+        }
+    }
+
+    return new Promise(function(resolve, reject) {
+        if (!sequelize.models.Board.isBoard(board)) { return reject(new Error('Invalid board')); }
+        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
+        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
+        position = position < 0 ? 0 : position;
+
+        sequelize.models.Column.findAll({
+            where: {
+                BoardId: board.id,
+                id: { $ne: column.id }
+            },
+            order: [['position', 'ASC']],
+            transaction: transaction
+        }).then(function(columns) {
+            if (!Array.isArray(columns)) { return reject(new Error('Failed to retrieve columns for reordering')); }
+            var prom = new Promise(function(resolveSub, rejectSub) {
+                // Handle all columns we just retrieved
+                handleNext(columns, resolveSub, rejectSub);
+            });
+
+            prom.then(function() {
+                if (position >= offset) {
+                    // Attach column to end
+                    saveColumnPosition(column, offset, transaction)
+                        .then(function() { resolve(); })
+                        .catch(function(err) { reject(err); });
+                } else {
+                    resolve();
+                }
+            }).catch(function(err) { reject(err); });
+        }).catch(function(err) { reject(err); });
+    });
+}
+
+/**
+ * Update the position for a single column
+ * @param column which shall be placed
+ * @param position which shall be applied
+ * @param transaction which shall be used
+ * @returns {bluebird|exports|module.exports}
+ */
+function saveColumnPosition(column, position, transaction) {
+    return new Promise(function(resolve, reject) {
+        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
+        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
+        position = position < 0 ? 0 : position;
+
+        column.updateAttributes({
+            position: position
+        }, { transaction: transaction })
+            .then(function() { resolve(); })
+            .catch(function(err) { reject(err); });
+    });
+}
+
 var Column = sequelize.define('Column', {
     position: {
         type: Sequelize.INTEGER,
@@ -73,9 +167,8 @@ var Column = sequelize.define('Column', {
          * Moves a column to a an absolute offset in the order of columns (e.g. internally stored position
          * does not matter for reordering, just the actual sequence/order of columns is relevant). The passed
          * offset itsself begins at 1 (Instead of 0 based, thus it reflects a more natural count than the typical
-         * index based 0-offset). Internally it will reposition all elements after the new position and place
-         * the card at that given new offset-position. Note that this handling will lead to fragmentation of the
-         * column-positions over time and the position-fields should be defragmented from time to time.
+         * index based 0-offset). The function is transaction-protected and will also ensure that order does not
+         * become fragmented.
          * @param offset where the column shall be placed in overall order
          * @returns {*|Bluebird.Promise}
          */
@@ -84,35 +177,20 @@ var Column = sequelize.define('Column', {
             return new Promise(function(resolve, reject) {
                 // Expect position to be a number
                 if (!_.isNumber(offset) && !_.isNaN(offset)) { return reject(new Error('Position offset must be numeric')); }
+                if (offset < 1) { offset = 1; }
 
-                // Get one entry with the pos as an offset
-                Column.findOne({ offset: offset - 1, where: { BoardId: that.BoardId }, order: 'position asc' })
-                    .then(function(column) {
-                        // Did we find some columns which would come after the offset?
-                        if (column !== null) {
-                            // Found some columns which would still come after
-                            var newPos = column.position;
-                            // Since we are executing 2 combined updates here, do this in a transaction
-                            sequelize.transaction(function(t) {
-                                return Column.update({ position: sequelize.literal('position + 1') },
-                                                     { where: { BoardId: that.BoardId, position: { gte: column.position }}},
-                                                     { transaction: t })
-                                    .then(function() { return that.update({ position: newPos}, { transaction: t }); });
-                            }).then(function() { resolve(); })
-                              .catch(function(err) { reject(err); });
-                        } else {
-                            // There are none, thus get the highest pos and move it to the end
-                            Column.max('position', { where: { BoardId: that.BoardId }})
-                                .then(function(max) {
-                                    if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
-                                    return that.update({ position: max + 1 });
-                                })
-                                .then(function() { resolve(); })
-                                .catch(function(err) { reject(err); });
-                        }
+                that.getBoard()
+                    .then(function(board) {
+                        if (!sequelize.models.Board.isBoard(board)) { return reject(new Error('Card is not associated with a valid board')); }
 
-                    })
-                    .catch(function(err) { reject(err); });
+                        // Move it
+                        sequelize.transaction(function(t) {
+                            return saveColumnPositions(board, that, offset, t);
+                        })
+                            .then(function() { resolve(); })
+                            .catch(function(err) { reject(err); });
+
+                    }).catch(function(err) { reject(err); });
             });
         }
     }

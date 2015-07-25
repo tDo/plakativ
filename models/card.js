@@ -283,6 +283,7 @@ var Card = sequelize.define('Card', {
                 if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
                 // Expect position to be a number
                 if (!_.isNumber(offset) && !_.isNaN(offset)) { return reject(new Error('Position offset must be numeric')); }
+                if (offset < 1) { offset = 1; }
 
                 that.getColumn()
                     .then(function(cardColumn) {
@@ -291,7 +292,6 @@ var Card = sequelize.define('Card', {
 
                         // Move in same column or to another column?
                         if (cardColumn.id === column.id) {
-                            console.log('Moving card in same column');
                             // Move in same column
                             sequelize.transaction(function(t) {
                                 return saveCardPositions(column, that, offset, t)
@@ -300,9 +300,7 @@ var Card = sequelize.define('Card', {
                               .catch(function(err) { reject(err); });
 
                         } else {
-                            console.log('Moving card to other column');
                             // Move to other columns
-                            // Move in same column
                             sequelize.transaction(function(t) {
                                 return saveCardPositions(cardColumn, that, 0, t).then(function() {
                                     return saveCardPositions(column, that, offset, t);

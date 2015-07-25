@@ -114,7 +114,7 @@ describe('Columns', function() {
                     columns[2].position.should.equal(3);
 
                     columns[3].title.should.equal('Col D');
-                    columns[3].position.should.equal(5);
+                    columns[3].position.should.equal(4);
 
                     done();
                 })
@@ -123,7 +123,7 @@ describe('Columns', function() {
 
         it('should move an entry to the beginning', function(done) {
             models.Column.findOne({ where: { title: 'Col C', BoardId: board.id }})
-                .then(function(colC) { return colC.moveTo(-1); })
+                .then(function(colC) { return colC.moveTo(1); })
                 .then(function() { return board.getColumns({ order: 'position asc'}); })
                 .then(function(columns) {
                     columns.should.have.length(4);
@@ -137,7 +137,7 @@ describe('Columns', function() {
                     columns[2].position.should.equal(3);
 
                     columns[3].title.should.equal('Col D');
-                    columns[3].position.should.equal(5);
+                    columns[3].position.should.equal(4);
 
                     done();
                 })
@@ -157,10 +157,10 @@ describe('Columns', function() {
                     columns[1].position.should.equal(2);
 
                     columns[2].title.should.equal('Col D');
-                    columns[2].position.should.equal(4);
+                    columns[2].position.should.equal(3);
 
                     columns[3].title.should.equal('Col C');
-                    columns[3].position.should.equal(5);
+                    columns[3].position.should.equal(4);
 
                     done();
                 })
