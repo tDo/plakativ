@@ -37,7 +37,7 @@
                     </template>
 
                     <div>
-                        <composer-element for-which="Column"></composer-element>
+                        <composer-element id="composer" for-which="Column"></composer-element>
                     </div>
                 </div>
 
@@ -130,6 +130,7 @@
 
             handleColumnCreated: function(req) {
                 // TODO: We should find about about errors...
+                this.$.composer.reset();
                 this.fire('requestBoardUpdate');
             },
 
@@ -142,7 +143,6 @@
             },
 
             handleColumnMoved: function() {
-                console.log('Moved some column');
                 this.fire('requestBoardUpdate');
             }
         });

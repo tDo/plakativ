@@ -21,8 +21,7 @@
                 handle-as    = "json"
                 on-response  = "handleCardMoved"></iron-ajax>
 
-        <header>
-            <i class="fa fa-arrows column-drag-handle"></i>
+        <header class="column-drag-handle">
             <h2>{{column.title}}</h2>
             <div class="group">
                 <estimate-element estimate="[[computeTotalEstimate(column.Cards, column.Cards.*)]]"></estimate-element>
@@ -36,7 +35,7 @@
         </div>
 
         <footer>
-            <composer-element for-which="Card"></composer-element>
+            <composer-element id="composer" for-which="Card"></composer-element>
         </footer>
     </template>
 
@@ -116,7 +115,7 @@
             },
 
             handleCardCreated: function() {
-                console.log('Created some card!');
+                this.$.composer.reset();
                 this.fire('requestBoardUpdate');
             },
 
@@ -130,7 +129,6 @@
             },
 
             handleCardMoved: function() {
-                console.log('Moved some card');
                 this.fire('requestBoardUpdate');
             }
         });
