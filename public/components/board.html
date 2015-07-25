@@ -8,12 +8,24 @@
     <link rel="import" type="css" href="/css/board.css">
 
     <template>
-        <user-data id="fnord"></user-data>
         <iron-ajax
-            auto
-            url           = "/boards/foo"
+            id            = "boardLoader"
+            content-type  = "application/json"
             handle-as     = "json"
-            last-response = "{{board}}"></iron-ajax>
+            on-response   = "handleBoardLoaded"></iron-ajax>
+        <iron-ajax
+            id            = "columnCreator"
+            method        = "POST"
+            content-type  = "application/json"
+            handle-as     = "json"
+            on-response   = "handleColumnCreated"></iron-ajax>
+        <iron-ajax
+            id           = "columnMover"
+            method       = "PUT"
+            content-type = "application/json"
+            handle-as    = "json"
+            on-response  = "handleColumnMoved"></iron-ajax>
+
 
         <div class="board">
             <board-top-bar-element board="{{board}}"></board-top-bar-element>
@@ -21,8 +33,12 @@
             <div class="wrapper">
                 <div class="columns">
                     <template is="dom-repeat" items="{{board.Columns}}">
-                        <column-element column="{{item}}"></column-element>
+                        <column-element board-id="[[board.id]]" column="{{item}}"></column-element>
                     </template>
+
+                    <div>
+                        <composer-element for-which="Column"></composer-element>
+                    </div>
                 </div>
 
                 <div class="sidebar">
@@ -38,18 +54,21 @@
         Polymer({
             is: 'board-element',
             properties: {
+                boardId: Number,
                 board: Object
             },
 
-            ready: function() {
-                //this.$.fnord.login('foo', 'bar');
-                //this.user = this.$.fnord.user;
-                //console.log(this.user);
+            listeners: {
+                requestBoardUpdate: 'requestBoardUpdate',
+                createColumn:       'createColumn'
+            },
 
+            ready: function() {
                 var that = this;
 
-                function addColumn(card, index) {
-                    that.splice('board.Columns', index, 0, card);
+                function addColumn(column, index) {
+                    that.splice('board.Columns', index, 0, column);
+                    that.moveColumn(column.id, index + 1)
                 }
 
                 function removeColumn(index) {
@@ -84,6 +103,47 @@
                         updateColumnPosition(evt.oldIndex, evt.newIndex);
                     }
                 });
+
+                this.fire('requestBoardUpdate');
+            },
+
+            requestBoardUpdate: function(e) {
+                var boardId = this.get('boardId');
+                var r       = this.$.boardLoader;
+                r.url       = '/boards/' + boardId;
+                this.$.boardLoader.generateRequest();
+            },
+
+            handleBoardLoaded: function(req) {
+                // TODO: Error handling when content not provided?
+                this.set('board', req.detail.response);
+            },
+
+            createColumn: function(e) {
+                var title   = e.detail.content;
+                var boardId = this.get('boardId');
+                var r       = this.$.columnCreator;
+                r.url       = '/boards/' + boardId + '/columns';
+                r.body      = JSON.stringify({ title: title });
+                r.generateRequest();
+            },
+
+            handleColumnCreated: function(req) {
+                // TODO: We should find about about errors...
+                this.fire('requestBoardUpdate');
+            },
+
+            moveColumn: function(columnId, offset) {
+                var boardId = this.get('boardId');
+                var r       = this.$.columnMover;
+                r.url       = '/boards/' + boardId + '/columns/' + columnId + '/position';
+                r.body      = JSON.stringify({ offset: offset });
+                r.generateRequest();
+            },
+
+            handleColumnMoved: function() {
+                console.log('Moved some column');
+                this.fire('requestBoardUpdate');
             }
         });
     </script>

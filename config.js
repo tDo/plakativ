@@ -14,7 +14,8 @@ var config = {
         port: 3000,
         database: {
             dialect: 'sqlite',
-            storage: __dirname + '/db.development.sqlite'
+            storage: __dirname + '/db.development.sqlite',
+            logging: false
         }
     },
     test: {
@@ -24,7 +25,7 @@ var config = {
         database: {
             dialect: 'sqlite',
             storage: __dirname + '/db.test.sqlite',
-            logging: function(val) {}
+            logging: false
         }
     }
 };

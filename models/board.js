@@ -49,14 +49,13 @@ var Board = sequelize.define('Board', {
                     .then(function() { resolve(board); })
                     .catch(function(err) { reject(err); });
             });
-        }//,
+        },
 
-        /*
+
         findEager: function(boardId) {
             return Board.findOne({ where: { id: boardId },
                 include: [
-                    { model: sequelize.models.User, as: 'Owner' },
-                    { model: sequelize.models.User, as: 'Participants' },
+                    { model: sequelize.models.User },
                     { model: sequelize.models.Label, as: 'Labels' },
                     { model: sequelize.models.Column, as: 'Columns', include: [
                         { model: sequelize.models.Card, as: 'Cards', include: [
@@ -67,7 +66,7 @@ var Board = sequelize.define('Board', {
                     ]}
                 ]
             });
-        }*/
+        }
     },
 
     instanceMethods: {

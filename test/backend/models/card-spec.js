@@ -164,7 +164,7 @@ describe('Cards', function() {
                         cards[2].position.should.equal(3);
 
                         cards[3].title.should.equal('CardAD');
-                        cards[3].position.should.equal(5);
+                        cards[3].position.should.equal(4);
 
                         done();
                     })
@@ -173,7 +173,7 @@ describe('Cards', function() {
 
             it('should move an entry to the beginning', function(done) {
                 models.Card.findOne({ where: { title: 'CardAC', ColumnId: columns[0].id }})
-                    .then(function(card) { return card.moveTo(columns[0], -1); })
+                    .then(function(card) { return card.moveTo(columns[0], 1); })
                     .then(function() { return columns[0].getCards({ order: 'position asc' }); })
                     .then(function(cards) {
                         cards.length.should.equal(4);
@@ -188,7 +188,7 @@ describe('Cards', function() {
                         cards[2].position.should.equal(3);
 
                         cards[3].title.should.equal('CardAD');
-                        cards[3].position.should.equal(5);
+                        cards[3].position.should.equal(4);
 
                         done();
                     })
@@ -209,10 +209,10 @@ describe('Cards', function() {
                         cards[1].position.should.equal(2);
 
                         cards[2].title.should.equal('CardAD');
-                        cards[2].position.should.equal(4);
+                        cards[2].position.should.equal(3);
 
                         cards[3].title.should.equal('CardAC');
-                        cards[3].position.should.equal(5);
+                        cards[3].position.should.equal(4);
 
                         done();
                     })
@@ -224,7 +224,7 @@ describe('Cards', function() {
         describe('Between multiple columns', function() {
             it('should move a card from one column to another', function(done) {
                 models.Card.findOne({ where: { title: 'CardAC', ColumnId: columns[0].id }})
-                    .then(function(card) { return card.moveTo(columns[1], -1); })
+                    .then(function(card) { return card.moveTo(columns[1], 1); })
                     .then(function() { return columns[1].getCards({ order: 'position asc'}); })
                     .then(function(cards) {
                         cards.length.should.equal(5);
@@ -256,7 +256,7 @@ describe('Cards', function() {
                         cards[1].position.should.equal(2);
 
                         cards[2].title.should.equal('CardAD');
-                        cards[2].position.should.equal(4);
+                        cards[2].position.should.equal(3);
 
                         done();
                     })

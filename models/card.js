@@ -4,6 +4,110 @@ var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/sequelize')();
 var helpers   = require(__dirname + '/helpers');
 
+
+/**
+ * Internal handler which can update (E.g. rearrange positions and place a new card in order
+ * or remove it from a column at all).
+ * @param column which shall be updated
+ * @param card which shall be handled
+ * @param position of the card
+ * @param transaction which shall be used
+ * @returns {bluebird|exports|module.exports}
+ */
+function saveCardPositions(column, card, position, transaction) {
+    var offset = 1;
+    var index  = 0;
+
+    function handleNext(cards, resolve, reject) {
+        if (index >= cards.length) { return resolve(); }
+        if (position === offset) {
+            // If we found the offset for the current card, place it there
+            saveCardPosition(column, card, offset, transaction)
+                .then(function() {
+                    offset = offset + 1;
+                    return saveCardPosition(column, cards[index], offset, transaction);
+                })
+                .then(function() {
+                    index  = index + 1;
+                    offset = offset + 1;
+                    handleNext(cards, resolve, reject);
+                })
+                .catch(function(err) { reject(err); });
+        } else {
+            // If we are at any other offset, just handle the position for that card
+            saveCardPosition(column, cards[index], offset, transaction)
+                .then(function() {
+                    index  = index + 1;
+                    offset = offset + 1;
+                    handleNext(cards, resolve, reject);
+                })
+                .catch(function(err) { reject(err); });
+        }
+
+    }
+
+    return new Promise(function(resolve, reject) {
+        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
+        if (!sequelize.models.Card.isCard(card)) { return reject(new Error('Invalid card')); }
+        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
+        position = position < 0 ? 0 : position;
+
+
+        sequelize.models.Card.findAll({
+            where: {
+                ColumnId: column.id,
+                id: { $ne: card.id }
+            },
+            order: [['position', 'ASC']],
+            transaction: transaction
+        }).then(function(cards) {
+            if (!Array.isArray(cards)) { return reject(new Error('Failed to retrieve cards for reordering')); }
+            var prom = new Promise(function(resolveSub, rejectSub) {
+                // Handle all cards we just retrieved
+                handleNext(cards, resolveSub, rejectSub);
+            });
+
+            prom.then(function() {
+                if (position >= offset) {
+
+                    // Attach card to end
+                    saveCardPosition(column, card, offset, transaction)
+                        .then(function() { resolve(); })
+                        .catch(function(err) { reject(err); });
+                } else {
+                    resolve();
+                }
+            })
+            .catch(function(err) { reject(err); });
+
+        }).catch(function(err) { reject(err); });
+    });
+}
+
+/**
+ * Update the position and column for a single card
+ * @param column where the card shall be placed
+ * @param card which shall be handled
+ * @param position where it shall be located
+ * @param transaction which shall be used
+ * @returns {bluebird|exports|module.exports}
+ */
+function saveCardPosition(column, card, position, transaction) {
+    return new Promise(function(resolve, reject) {
+        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
+        if (!sequelize.models.Card.isCard(card)) { return reject(new Error('Invalid card')); }
+        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
+        position = position < 0 ? 0 : position;
+
+        card.updateAttributes({
+            position: position,
+            ColumnId: column.id
+        }, { transaction: transaction })
+            .then(function() { resolve(); })
+            .catch(function(err) { reject(err); });
+    });
+}
+
 var Card = sequelize.define('Card', {
     position: {
         type: Sequelize.INTEGER,
@@ -165,8 +269,9 @@ var Card = sequelize.define('Card', {
          * Move the card to a column at a specific offset. This may either be the same
          * column to reposition the card or another column. The offset starts at 1 instead of the typical 0-based
          * offset to get a "more natural" order of cards. This handler will move the card to the actual offset
-         * defined and increase the position of all following cards. Note that this might lead to fragmentation
-         * of the internal position counter, which should be defragmented from time to time.
+         * defined in the target-column and ensure that the remaining cards in (both if we move from one column to another)
+         * are reordered accordingly to counter fragmentation of the columns. All update-actions are handled in a single
+         * transaction so we can ensure that you will not end up with messed up structure at the end if something fails.
          * @param column To/In which the card shall be positioned
          * @param offset where the card shall be placed
          * @returns {bluebird|exports|module.exports}
@@ -179,44 +284,36 @@ var Card = sequelize.define('Card', {
                 // Expect position to be a number
                 if (!_.isNumber(offset) && !_.isNaN(offset)) { return reject(new Error('Position offset must be numeric')); }
 
-                // Ensure the target-column is associated with the same board as the current column
                 that.getColumn()
                     .then(function(cardColumn) {
                         if (!sequelize.models.Column.isColumn(cardColumn)) { return reject(new Error('Card is not associated with a valid column')); }
                         if (cardColumn.BoardId !== column.BoardId) { return reject(new Error('Can not move card to column in different board')); }
 
-                        // Get one entry with the pos as an offset
-                        return Card.findOne({offset: offset - 1, where: { ColumnId: column.id }, order: 'position asc'});
-                    })
-                    .then(function(card) {
-                        // Did we find some cards which would come after the offset?
-                        if (card !== null) {
-                            // Found some cards which would still come after
-                            var newPos = card.position;
-                            // Since we are executing 2 combined updates here, do this in a transaction
+                        // Move in same column or to another column?
+                        if (cardColumn.id === column.id) {
+                            console.log('Moving card in same column');
+                            // Move in same column
                             sequelize.transaction(function(t) {
-                                return Card.update({ position: sequelize.literal('position + 1') },
-                                    { where: { ColumnId: column.id, position: { gte: card.position }}},
-                                    { transaction: t })
-                                    .then(function() { return that.update({ ColumnId: column.id, position: newPos }, { transaction: t }); });
+                                return saveCardPositions(column, that, offset, t)
                             })
-                            .then(function() { resolve(); })
-                            .catch(function(err) { reject(err); });
+                              .then(function() { resolve(); })
+                              .catch(function(err) { reject(err); });
+
                         } else {
-                            // There are none, thus get the highest pos and move it to the end
-                            Card.max('position', { where: { ColumnId: column.id }})
-                                .then(function(max) {
-                                    if (!_.isNumber(max) || _.isNaN(max)) {
-                                        max = 0;
-                                    }
-                                    return that.update({ ColumnId: column.id, position: max + 1 });
+                            console.log('Moving card to other column');
+                            // Move to other columns
+                            // Move in same column
+                            sequelize.transaction(function(t) {
+                                return saveCardPositions(cardColumn, that, 0, t).then(function() {
+                                    return saveCardPositions(column, that, offset, t);
                                 })
+                            })
                                 .then(function() { resolve(); })
                                 .catch(function(err) { reject(err); });
                         }
 
-                    })
-                    .catch(function(err) { reject(err); });
+
+                    }).catch(function(err) { reject(err); });
             });
         }
     }

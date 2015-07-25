@@ -1,0 +1,113 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<dom-module id="composer-element">
+    <style>
+        :host {
+            display: block;
+            min-width: 250px;
+        }
+        #composer {
+            position: relative;
+            margin: 10px 0;
+            background-color: #fff;
+            border: 2px solid #dbdbdb;
+            border-bottom: 2px solid #ccc;
+        }
+
+        #composer input {
+            width: 100%;
+            min-height: 75px;
+            margin: 0;
+            padding: 5px;
+            border-width: 0;
+            box-sizing: border-box;
+            outline: none;
+            resize: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+    <template>
+        <div id="composer" class="hidden">
+            <input type="text" id="content" maxlength$="{{maxLength}}" on-keyup="handleKeyUp">
+            <button on-click="add" disabled$="{{!isAddEnabled(minLength, maxLength, length)}}">Save</button>
+            <button on-click="cancel">Cancel</button>
+        </div>
+
+        <button id="toggleButton" on-click="showForm"><i class="fa fa-plus"></i> Add <span>{{forWhich}}</span>&hellip;</button>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'composer-element',
+            properties: {
+                forWhich: String,
+                minLength: {
+                    type: Number,
+                    value: 1
+                },
+                maxLength: {
+                    type: Number,
+                    value: 255
+                },
+                content: {
+                    type: String,
+                    readOnly: true,
+                    value: ''
+                },
+                length: {
+                    type: Number,
+                    readOnly: true,
+                    value: 0
+                }
+            },
+
+            toggleForm: function(hidden) {
+                this.toggleClass('hidden', !hidden, this.$.composer);
+                this.toggleClass('hidden', hidden, this.$.toggleButton);
+            },
+
+            showForm: function() {
+                this.toggleForm(true);
+                this.$.content.focus();
+            },
+
+            handleKeyUp: function(e) {
+                var content = this.$.content.value;
+                this._setContent(content);
+                this._setLength(content.length);
+
+                // Send on enter
+                if (e.keyCode == 13) {
+                    this.add();
+                }
+            },
+
+            isAddEnabled: function(min, max, length) {
+                return length >= min && length <= max;
+            },
+
+            add: function() {
+                var content   = this.get('content');
+                var minLength = this.get('minLength');
+                var maxLength = this.get('maxLength');
+                var forWhich  = this.get('forWhich');
+
+                if (content.length < minLength ||
+                    content.length > maxLength) { return false; }
+
+                this._setContent('');
+                this._setLength(0);
+                this.$.content.value = '';
+
+                this.fire('create' + forWhich, { content: content });
+                this.toggleForm(false);
+            },
+
+            cancel: function() {
+                this.toggleForm(false);
+            }
+        });
+    </script>
+</dom-module>

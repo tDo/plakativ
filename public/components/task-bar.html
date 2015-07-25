@@ -4,7 +4,7 @@
 <dom-module id="task-bar-element">
     <link rel="import" type="css" href="/css/task-bar.css">
     <template>
-        <template is="dom-if" if="{{tasks}}">
+        <template is="dom-if" if="{{hasTasks(tasks)}}">
             <div class$="{{computeSizeClassName('task-bar')}}">
                 <i class="fa fa-check-square-o"></i>
                 <div class="counter"><span class="inner"><span>{{computeDoneCount(tasks)}}</span>/<span>{{computeTotalCount(tasks)}}</span></span></div>
@@ -17,6 +17,7 @@
     <script>
         var computeDoneCount = function(tasks) {
             if (!Array.isArray(tasks)) { return 0; }
+            if (tasks.length === 0) { return 0; }
             return tasks
                     .map(function(task) { return task.done ? 1 : 0; })
                     .reduce(function(prev, curr, index, arr) {
@@ -45,6 +46,9 @@
                 tasks: Array
             },
 
+            hasTasks: function(tasks) {
+                return computeTotalCount(tasks) > 0;
+            },
             computeDoneCount: computeDoneCount,
             computeTotalCount: computeTotalCount,
             computePercentageStyle: function(tasks) {

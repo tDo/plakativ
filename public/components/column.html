@@ -1,5 +1,6 @@
 <link rel="import" href="/bower_components/polymer/polymer.html">
 <link rel="import" href="/bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="composer-element.html">
 <link rel="import" href="card.html">
 <link rel="import" href="estimate.html">
 
@@ -7,6 +8,19 @@
     <link rel="import" type="css" href="/css/column.css">
 
     <template>
+        <iron-ajax
+                id           = "cardCreator"
+                method       = "POST"
+                content-type = "application/json"
+                handle-as    = "json"
+                on-response  = "handleCardCreated"></iron-ajax>
+        <iron-ajax
+                id           = "cardMover"
+                method       = "PUT"
+                content-type = "application/json"
+                handle-as    = "json"
+                on-response  = "handleCardMoved"></iron-ajax>
+
         <header>
             <i class="fa fa-arrows column-drag-handle"></i>
             <h2>{{column.title}}</h2>
@@ -17,12 +31,12 @@
 
         <div class="cards">
             <template is="dom-repeat" items="{{column.Cards}}">
-                <card-element card="{{item}}"></card-element>
+                <card-element board-id="[[boardId]]" column-id="[[column.id]]" card="{{item}}"></card-element>
             </template>
         </div>
 
         <footer>
-            <button><i class="fa fa-plus"></i> Add card&hellip;</button>
+            <composer-element for-which="Card"></composer-element>
         </footer>
     </template>
 
@@ -30,7 +44,12 @@
         Polymer({
             is: 'column-element',
             properties: {
+                boardId: Number,
                 column: Object
+            },
+
+            listeners: {
+                createCard: 'createCard'
             },
 
             ready: function () {
@@ -38,6 +57,7 @@
 
                 function addCard(card, newIndex) {
                     that.splice('column.Cards', newIndex, 0, card);
+                    that.moveCard(card.id, newIndex + 1);
                 }
 
                 function removeCard(oldIndex) {
@@ -83,6 +103,35 @@
                             curr = curr < 0 ? 0 : curr;
                             return prev + curr;
                         });
+            },
+
+            createCard: function(e) {
+                var title   = e.detail.content;
+                var boardId = this.get('boardId');
+                var column  = this.get('column');
+                var r       = this.$.cardCreator;
+                r.url       = '/boards/' + boardId + '/columns/' + column.id + '/cards';
+                r.body      = JSON.stringify({ title: title });
+                r.generateRequest();
+            },
+
+            handleCardCreated: function() {
+                console.log('Created some card!');
+                this.fire('requestBoardUpdate');
+            },
+
+            moveCard: function(cardId, offset) {
+                var boardId = this.get('boardId');
+                var column  = this.get('column');
+                var r       = this.$.cardMover;
+                r.url       = '/boards/' + boardId + '/columns/' + column.id + '/cards/' + cardId + '/position';
+                r.body      = JSON.stringify({ offset: offset });
+                r.generateRequest();
+            },
+
+            handleCardMoved: function() {
+                console.log('Moved some card');
+                this.fire('requestBoardUpdate');
             }
         });
     </script>
