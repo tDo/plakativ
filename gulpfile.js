@@ -1,16 +1,20 @@
-var path      = require('path');
-var jshint    = require('gulp-jshint');
-var stylish   = require('jshint-stylish');
-var less      = require('gulp-less');
-var minifyCSS = require('gulp-minify-css');
-var gulp      = require('gulp');
+var path           = require('path');
+var jshint         = require('gulp-jshint');
+var stylish        = require('jshint-stylish');
+var less           = require('gulp-less');
+var lessAutoPrefix = require('less-plugin-autoprefix');
+var minifyCSS      = require('gulp-minify-css');
+var gulp           = require('gulp');
 
 
 // Less-conversion task
 gulp.task('less', function() {
+    var autoprefix = new lessAutoPrefix({ browsers: ['last 2 versions'] });
+
     return gulp.src('./less/**/*.less')
         .pipe(less({
-            paths: [ path.join(__dirname, 'less', 'includes') ]
+            plugins: [ autoprefix ],
+            paths:   [ path.join(__dirname, 'less', 'includes') ]
         }))
         .pipe(minifyCSS())
         .pipe(gulp.dest('./public/css'));
