@@ -9,14 +9,24 @@
             </div>
 
             <div id="composer" class$="{{getStateClass('composer', composing, inProgress)}}">
-                <input type="text" id="content" maxlength$="{{maxLength}}" on-keyup="handleKeyUp">
-                <button on-click="add" disabled$="{{!isAddEnabled(minLength, maxLength, length)}}">Save</button>
-                <button on-click="cancel">Cancel</button>
+                <input type       = "text"
+                       id         = "content"
+                       on-keyup   = "handleKeyUp"
+                       maxlength$ = "{{maxLength}}">
+
+                <button class     = "btn btn-success"
+                        on-click  = "add"
+                        disabled$ = "{{!isAddEnabled(minLength, maxLength, length)}}"><i class="fa fa-plus"></i> Save</button>
+
+                <button class    = "btn btn-error"
+                        on-click = "cancel"><i class="fa fa-times"></i> Cancel</button>
             </div>
 
-            <button id       = "toggleButton"
-                    on-click = "startComposing"
-                    class$   = "{{getStateClass('toggleButton', composing, inProgress)}}"><i class="fa fa-plus"></i> Add <span>{{forWhich}}</span>&hellip;</button>
+            <div id="toggleButton"
+                 class$   = "{{getStateClass('toggleButton', composing, inProgress)}}">
+                <button class    = "btn btn-success"
+                        on-click = "startComposing"><i class="fa fa-plus"></i> <span>{{caption}}</span>&hellip;</button>
+            </div>
         </div>
     </template>
 
@@ -25,6 +35,7 @@
             is: 'composer-element',
             properties: {
                 forWhich: String,
+                caption: String,
                 minLength: {
                     type: Number,
                     value: 1

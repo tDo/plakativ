@@ -1,0 +1,62 @@
+// Some button-styles for unified buttons
+// Inspired by pure.css library (http://purecss.io/)
+@import "variables.less";
+
+.btn {
+  display: inline-block;
+  padding: 0.5em 1em;
+  zoom: 1;
+  line-height: normal;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+
+  font-family: inherit;
+  font-size: 100%;
+  background-color: @background-button;
+  text-decoration: none;
+  border: none rgba(0, 0, 0, 0);
+  border-radius: @border-radius;
+
+  &:hover, &:focus {
+    background-image: linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.10));
+  }
+  &:focus { outline: 0; }
+  &:active {
+    box-shadow: 0 0 0 1px rgba(0,0,0, 0.15) inset, 0 0 6px rgba(0,0,0, 0.20) inset;
+    border-color: #000\9;
+  }
+
+  &[disabled] {
+    border: none;
+    background-image: none;
+    opacity: 0.4;
+    cursor: pointer;
+    box-shadow: none;
+  }
+
+  // Different button-sizes
+  &.btn-small { font-size: @font-size-small; }
+  &.btn-large { font-size: @font-size-large; }
+
+  // Buttons of multiple colors for specific occasions
+  &btn-primary {
+    background-color: @background-primary;
+    color: @color-primary;
+  }
+  &.btn-success {
+    background-color: @background-success;
+    color: @color-success;
+  }
+  &.btn-error {
+    background-color: @background-error;
+    color: @color-error;
+  }
+  &.btn-warning {
+    background-color: @background-warning;
+    color: @color-warning;
+  }
+}
