@@ -186,5 +186,24 @@ describe('Boards', function() {
                 })
                 .catch(function(err) { done(err); });
         });
+
+        it('should verify if a user is a board admin', function(done) {
+            board.addUser(users[0], { admin: true })
+                .then(function() { return board.isAdmin(users[0]); })
+                .then(function(isAdmin) {
+                    isAdmin.should.equal(true);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should verify that a user is not a board admin', function(done) {
+            board.isAdmin(users[0])
+                .then(function(isAdmin) {
+                    isAdmin.should.equal(false);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
     });
 });

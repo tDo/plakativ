@@ -16,7 +16,7 @@ describe('/users', function() {
     });
 
     describe('POST /api/users/login', function() {
-        it('responds with a json error-message and a value of null if the credentials are missing', function(done) {
+        it('responds with a json error-message if the credentials are missing', function(done) {
             request(app)
                 .post('/users/login')
                 .expect('Content-Type', /json/)
@@ -24,15 +24,15 @@ describe('/users', function() {
                 .end(function(err, res) {
                     if (err) { return done(err); }
 
-                    res.body.should.have.property('error_message');
-                    res.body.error_message.should.match(/Login failed/);
-                    res.body.should.have.property('value');
+                    res.body.should.have.property('error');
+                    res.body.error.should.have.property('message');
+                    res.body.error.message.should.match(/Username or password were incorrect/);
                     should.not.exist(res.body.value);
                     done();
                 });
         });
 
-        it('responds with a json error-message and a value of null if the credentials are invalid', function(done) {
+        it('responds with a json error-message if the credentials are invalid', function(done) {
             request(app)
                 .post('/users/login')
                 .send({ username: 'Invalid', password: 'Also invalid'})
@@ -41,10 +41,9 @@ describe('/users', function() {
                 .end(function(err, res) {
                     if (err) { return done(err); }
 
-                    res.body.should.have.property('error_message');
-                    res.body.error_message.should.match(/Login failed/);
-                    res.body.should.have.property('value');
-                    should.not.exist(res.body.value);
+                    res.body.should.have.property('error');
+                    res.body.error.should.have.property('message');
+                    res.body.error.message.should.match(/Username or password were incorrect/);
                     done();
                 });
         });
@@ -58,13 +57,50 @@ describe('/users', function() {
                 .end(function(err, res) {
                     if (err) { return done(err); }
 
-                    res.body.should.not.have.property('error_message');
-                    res.body.should.have.property('value');
-                    res.body.value.should.have.property('name');
-                    res.body.value.should.have.property('id');
-                    res.body.value.name.should.equal('testuser');
-                    res.body.value.id.should.be.above(0);
+                    res.body.should.not.have.property('error');
+                    res.body.should.have.property('name');
+                    res.body.should.have.property('id');
+                    res.body.name.should.equal('testuser');
+                    res.body.id.should.be.above(0);
                     done();
+                });
+        });
+    });
+
+    describe('GET /api/users/logout', function() {
+        it('should deny access if the user is not logged in', function(done) {
+            request(app)
+                .get('/users/logout')
+                .expect('Content-Type', /json/)
+                .expect(401)
+                .end(function(err, res) {
+                    if (err) { return done(err); }
+
+                    res.body.should.have.property('error');
+                    res.body.error.should.have.property('message');
+                    res.body.error.message.should.match(/You must be logged in to call this route/);
+                    done();
+                });
+        });
+
+        it('should log out a logged in user', function(done) {
+            var agent = request.agent(app);
+
+            agent.post('/users/login')
+                .set('Accept', 'application/json')
+                .send({ username: 'testuser', password: 'testpassword'})
+                .end(function(err, res) {
+                    should.not.exist(err);
+                    res.status.should.equal(200);
+                    should.exist(res.headers['set-cookie']);
+
+                    agent.get('/users/logout')
+                        .set('Accept', 'application/json')
+                        .end(function(err, res) {
+                            should.not.exist(err);
+                            res.status.should.equal(200);
+                            done();
+                        });
                 });
         });
     });

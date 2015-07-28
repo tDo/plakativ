@@ -19,8 +19,8 @@
   ],
   "dependencies": {
     "polymer": "Polymer/polymer#^1.0.0",
-    "iron-elements": "PolymerElements/iron-elements#~1.0.1",
     "components-font-awesome": "~4.3.0",
-    "normalize.css": "~3.0.3"
+    "normalize.css": "~3.0.3",
+    "iron-ajax": "PolymerElements/iron-ajax#~1.0.3"
   }
 }

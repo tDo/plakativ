@@ -1,0 +1,16 @@
+<script>
+    var UserDataBehavior = {
+        properties: {
+            userData: {
+                type: Object,
+                value: {}
+            }
+        },
+
+        hasLoggedInUser: function(user) {
+            return user &&
+                   user.id && typeof user.id === 'number' &&
+                   user.name && typeof user.name === 'string';
+        }
+    }
+</script>

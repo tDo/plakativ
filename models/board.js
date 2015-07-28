@@ -70,6 +70,31 @@ var Board = sequelize.define('Board', {
     },
 
     instanceMethods: {
+
+        /**
+         * This helper function verifies if the passed in user is a board-admin and passes
+         * in the result as the first parameter of the resolve-handler. The returned promise
+         * will only be rejected on real errors.
+         * @param user to verify for this board
+         * @returns {bluebird|exports|module.exports}
+         */
+        isAdmin: function(user) {
+            var that = this;
+            return new Promise(function(resolve, reject) {
+                if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
+                that.getUsers({ where: { id: user.id }})
+                    .then(function(users) {
+                        if (!Array.isArray(users) || users.length < 1) {
+                            return resolve(false);
+                        }
+
+                        var user = users[0];
+                        resolve(user.BoardUsers.admin === true);
+                    })
+                    .catch(function(err) { reject(err); });
+            });
+        },
+
         /**
          * This helper-function will attempt to remove the relation of card <-> user assignments from all
          * cards present in this board. This function will typically be called before removing a participant

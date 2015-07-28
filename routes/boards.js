@@ -1,42 +1,46 @@
 var express   = require('express');
-var passport  = require('passport');
+var loggedIn  = require(__dirname + '/middleware/logged-in');
+var access    = require(__dirname + '/middleware/board-access');
 var models    = require(__dirname + '/../models');
 var sequelize = models.sequelize();
 var router    = express.Router();
 
+// Authentication-handler
+router.all('*', loggedIn);
+
+function findOne(model, paramName, id, req, res, next) {
+    model.findOne({ where: { id: id }})
+        .then(function(item) {
+            if (!item) {
+                return res.status(404).json({ error: { message: paramName + ' is unknown' }});
+            }
+            req[paramName] = item;
+            next();
+        }).catch(function(err) { next(err); });
+}
 
 router.param('boardIdEager', function(req, res, next, id) {
     models.Board.findEager(id)
         .then(function(board) {
-            if (!board) { next(new Error('Board is unknown')); }
+            if (!board) {
+                return res.status(404).json({ error: { message: 'Board is unknown' }});
+            }
+
             req.board = board;
             next();
         }).catch(function(err) { next(err); });
 });
 
 router.param('boardId', function(req, res, next, id) {
-    models.Board.findOne({ where: { id: id }})
-        .then(function(board) {
-            if (!board) { next(new Error('Board is unknown')); }
-            req.board = board;
-            next();
-        }).catch(function(err) { next(err); });
+    findOne(models.Board, 'board', id, req, res, next);
 });
 
 router.param('columnId', function(req, res, next, id) {
-    models.Column.findOne({ where: { id: id }})
-        .then(function(column) {
-            req.column = column;
-            next();
-        }).catch(function(err) { next(err); });
+    findOne(models.Column, 'column', id, req, res, next);
 });
 
 router.param('cardId', function(req, res, next, id) {
-    models.Card.findOne({ where: { id: id }})
-        .then(function(card) {
-            req.card = card;
-            next();
-        }).catch(function(err) { next(err); });
+    findOne(models.Card, 'card', id, req, res, next);
 });
 
 router.route('/')
@@ -46,21 +50,19 @@ router.route('/')
     });
 
 router.route('/:boardIdEager')
-    .all(function(req, res, next) { next(); })
-    .get(function(req, res, next) {
-        // TODO: Check logged in
-        // TODO: Check if the user is even participating here
+    .get(access.canRead, function(req, res, next) {
         res.json(req.board);
     })
-    .put(function(req, res, next) {
+    .put(access.canExecuteAdminAction, function(req, res, next) {
         // TODO: Change board-specific settings (Name, etc.)
     })
-    .delete(function(req, res, next) {
+    .delete(access.canExecuteAdminAction, function(req, res, next) {
         // Delete the actual board
     });
 
 
 router.route('/:boardId/columns')
+    .all(access.canExecuteAdminAction)
     .post(function(req, res, next) {
         models.Column.make(req.board, req.body)
             .then(function(column) { res.json(column); })
@@ -68,6 +70,7 @@ router.route('/:boardId/columns')
     });
 
 router.route('/:boardId/columns/:columnId')
+    .all(access.canExecuteAdminAction)
     .put(function(req, res, next) {
         // TODO: Update data of a column
     })
@@ -76,6 +79,7 @@ router.route('/:boardId/columns/:columnId')
     });
 
 router.route('/:boardId/columns/:columnId/position')
+    .all(access.canExecuteAdminAction)
     .put(function(req, res, next) {
         req.column.moveTo(req.body.offset)
             .then(function() { res.json(true); })
@@ -83,6 +87,7 @@ router.route('/:boardId/columns/:columnId/position')
     });
 
 router.route('/:boardId/columns/:columnId/cards')
+    .all(access.canExecuteUserAction)
     .post(function(req, res, next) {
         models.Card.make(req.column, req.body)
             .then(function(card) { res.json(card); })
@@ -90,12 +95,14 @@ router.route('/:boardId/columns/:columnId/cards')
     });
 
 router.route('/:boardId/columns/:columnId/cards/:cardId')
+    .all(access.canExecuteUserAction)
     .put(function(req, res, next) {
         // TODO: Change a cards content
     })
     .delete(function(req, res, next) { next(new Error('Not implemented')); });
 
 router.route('/:boardId/columns/:columnId/cards/:cardId/position')
+    .all(access.canExecuteUserAction)
     .put(function(req, res, next) {
         req.card.moveTo(req.column, req.body.offset)
             .then(function() { return res.json(true); })

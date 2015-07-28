@@ -9,9 +9,6 @@ var models         = require(__dirname + '/models');
 var sequelize      = models.sequelize();
 
 function init(config) {
-    // Testwise create our database here
-    //sequelize.sync({ force: true });
-
     // Create actual express application instance
     var app = express();
 
@@ -48,7 +45,7 @@ function init(config) {
         done(null, user.id);
     });
     passport.deserializeUser(function(id, done) {
-        models.User.get(id).run()
+        models.User.findOne({ where: { id: id }})
         .then(function(user) { done(null, user); })
         .error(function(err) { done(err); });
     });
@@ -63,9 +60,6 @@ function init(config) {
     app.use('/users',  routes.users);
     app.use('/boards', routes.boards);
 
-    app.get('/', function(req, res) {
-        res.send('The server!');
-    });
 
     return app;
 }

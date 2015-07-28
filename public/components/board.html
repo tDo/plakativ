@@ -1,8 +1,9 @@
 <link rel="import" href="/bower_components/polymer/polymer.html">
 <link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
-<link rel="import" href="user-data.html">
+<link rel="import" href="userdata-behavior.html">
 <link rel="import" href="board-top-bar.html">
 <link rel="import" href="column.html">
+<link rel="import" href="composer.html">
 
 <dom-module id="board-element">
     <link rel="import" type="css" href="/css/board.css">
@@ -60,6 +61,8 @@
                 boardId: Number,
                 board: Object
             },
+
+            behaviors: [UserDataBehavior],
 
             listeners: {
                 requestBoardUpdate: 'requestBoardUpdate',

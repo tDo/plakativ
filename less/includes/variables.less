@@ -4,6 +4,9 @@
 @background-column: darken(@background-body, 5%);
 @background-card: #fff;
 
+@background-input: #fff;
+@background-input-disabled: darken(@background-input, 10%);
+@background-input-readonly: @background-input-disabled;
 @background-button: #E6E6E6;
 
 @background-task-bar: #f4f4f4;
@@ -20,10 +23,19 @@
 
 @border-color-column: #435e7f;
 
+@border-color-legend: #ccc;
+@border-color-input: #ccc;
+@border-color-input-focus: rgb(0, 116, 224);
+@border-color-input-readonly: #ccc;
+
 // Text-colors
 @color-main: #4d4d4d;
 @color-link: #4d4d4d;
 @color-column: @color-main;
+
+@color-input-disabled: #cad2d3;
+@color-input-readonly: #cad2d3;
+
 @color-task-bar: #000;
 
 @color-primary: #fff;
@@ -36,3 +48,6 @@
 @font-size-small: @font-size - 2px;
 @font-size-large: @font-size + 4px;
 @line-height:     @font-size * 1.5;
+
+// Shadow-colors
+@shadow-color-input: #ddd;

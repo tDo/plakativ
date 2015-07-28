@@ -1,0 +1,32 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="userdata-behavior.html">
+<link rel="import" href="login.html">
+<link rel="import" href="board.html">
+
+<dom-module id="app-element">
+    <template>
+        <template is="dom-if" if="{{!hasLoggedInUser(userData)}}">
+            <login-element></login-element>
+        </template>
+
+        <template is="dom-if" if="{{hasLoggedInUser(userData)}}">
+            <board-element user-data = "[[userData]]"
+                           board-id  = "1"></board-element>
+        </template>
+    </template>
+    <script>
+        Polymer({
+            is: 'app-element',
+            behaviors: [UserDataBehavior],
+
+            listeners: {
+                userLoggedIn: 'userLoggedIn'
+            },
+
+            userLoggedIn: function(e) {
+                // TODO: Check for validity here
+                this.set('userData', e.detail);
+            }
+        });
+    </script>
+</dom-module>

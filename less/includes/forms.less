@@ -1,0 +1,96 @@
+// Some form-styles for unified forms
+// Inspired by pure.css library (http://purecss.io/)
+@import "variables.less";
+
+.form {
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  input[type="date"],
+  input[type="month"],
+  input[type="time"],
+  input[type="datetime"],
+  input[type="datetime-local"],
+  input[type="week"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="color"],
+  select,
+  textarea {
+    padding: 0.5em 0.6em;
+    display: inline-block;
+    background-color: @background-input;
+    border: 1px solid @border-color-input;
+    box-shadow: inset 0 1px 3px @shadow-color-input;
+    border-radius: @border-radius;
+    vertical-align: middle;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: 0;
+      border-color: @border-color-input-focus;
+    }
+
+    &[disabled] {
+      background-color: @background-input-disabled;
+      color: @color-input-disabled;
+    }
+
+    &[readonly] {
+      background-color: @background-input-readonly;
+      color: @color-input-readonly;
+      border-color: @border-color-input-readonly;
+    }
+  }
+
+  select {
+    height: 2.25em;
+    border: 1px solid @border-color-input;
+    &[multiple] {
+      height: auto;
+    }
+  }
+
+  label {
+    margin: 0.5em 0 0.2em;
+  }
+
+  fieldset {
+    margin: 0;
+    padding: 0.35em 0 0.75em;
+    border: 0;
+  }
+
+  legend {
+    display: block;
+    width: 100%;
+    padding: 0.3em 0;
+    margin-bottom: 0.3em;
+    color: @color-main;
+    border-bottom: 1px solid @border-color-legend;
+  }
+
+  &.form-stacked {
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="url"],
+    input[type="date"],
+    input[type="month"],
+    input[type="time"],
+    input[type="datetime"],
+    input[type="datetime-local"],
+    input[type="week"],
+    input[type="number"],
+    input[type="search"],
+    input[type="tel"],
+    input[type="color"],
+    select,
+    textarea {
+      display: block;
+      margin: 0.25em 0;
+    }
+  }
+}
