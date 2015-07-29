@@ -3,6 +3,7 @@ var loggedIn  = require(__dirname + '/middleware/logged-in');
 var access    = require(__dirname + '/middleware/board-access');
 var models    = require(__dirname + '/../models');
 var sequelize = models.sequelize();
+var socketio  = require(__dirname + '/../socketio');
 var router    = express.Router();
 
 // Authentication-handler
@@ -30,6 +31,17 @@ router.param('boardIdEager', function(req, res, next, id) {
             next();
         }).catch(function(err) { next(err); });
 });
+
+function emitBoardUpdate(id) {
+    models.Board.findEager(id)
+        .then(function(board) {
+            if (!board) { return false; }
+
+            // TODO: We should do room magic here somehow...
+            var io = socketio();
+            io.to('board' + board.id).emit('boardUpdated', board);
+        }).catch(function(err) { console.log(err); });
+}
 
 router.param('boardId', function(req, res, next, id) {
     findOne(models.Board, 'board', id, req, res, next);
@@ -65,7 +77,10 @@ router.route('/:boardId/columns')
     .all(access.canExecuteAdminAction)
     .post(function(req, res, next) {
         models.Column.make(req.board, req.body)
-            .then(function(column) { res.json(column); })
+            .then(function(column) {
+                res.json(column);
+                emitBoardUpdate(req.board.id);
+            })
             .catch(function(err) { next(err); });
     });
 
@@ -82,7 +97,10 @@ router.route('/:boardId/columns/:columnId/position')
     .all(access.canExecuteAdminAction)
     .put(function(req, res, next) {
         req.column.moveTo(req.body.offset)
-            .then(function() { res.json(true); })
+            .then(function() {
+                res.json(true);
+                emitBoardUpdate(req.board.id);
+            })
             .catch(function(err) { next(err); });
     });
 
@@ -90,7 +108,10 @@ router.route('/:boardId/columns/:columnId/cards')
     .all(access.canExecuteUserAction)
     .post(function(req, res, next) {
         models.Card.make(req.column, req.body)
-            .then(function(card) { res.json(card); })
+            .then(function(card) {
+                res.json(card);
+                emitBoardUpdate(req.board.id);
+            })
             .catch(function(err) { next(err); });
     });
 
@@ -105,7 +126,10 @@ router.route('/:boardId/columns/:columnId/cards/:cardId/position')
     .all(access.canExecuteUserAction)
     .put(function(req, res, next) {
         req.card.moveTo(req.column, req.body.offset)
-            .then(function() { return res.json(true); })
+            .then(function() {
+                res.json(true);
+                emitBoardUpdate(req.board.id);
+            })
             .catch(function(err) { next(err); });
     });
 

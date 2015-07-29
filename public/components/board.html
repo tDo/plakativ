@@ -72,6 +72,17 @@
             ready: function() {
                 var that = this;
 
+                this.socket = io('http://localhost:3000');
+                this.socket.on('connect', function() {
+                    that.socket.emit('watchBoard', { boardId: that.get('boardId')});
+                    // TODO: Unwatch when the board-id was changed or we detached the board-element
+                });
+
+                this.socket.on('boardUpdated', function(data) {
+                    if (data.id !== that.get('boardId')) { return false; }
+                    that.set('board', data);
+                });
+
                 function addColumn(column, index) {
                     that.splice('board.Columns', index, 0, column);
                     that.moveColumn(column.id, index + 1)

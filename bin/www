@@ -13,7 +13,14 @@ var app  = require(__dirname + '/../index')(config);
 var port = config.port;
 app.set('port', port);
 
+// Create the server
 var server = http.createServer(app);
+
+// Bind our socketio instance
+var io = require(__dirname + '/../socketio')();
+io.attach(server);
+
+// And finally start listening
 server.listen(port);
 
 function onError(error) {
