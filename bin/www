@@ -17,7 +17,7 @@ app.set('port', port);
 var server = http.createServer(app);
 
 // Bind our socketio instance
-var io = require(__dirname + '/../socketio')();
+var io = require(__dirname + '/../libs/socketio')();
 io.attach(server);
 
 // And finally start listening

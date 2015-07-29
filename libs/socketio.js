@@ -1,6 +1,4 @@
 var io = require('socket.io');
-
-var server
 var instance;
 
 /**

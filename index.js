@@ -9,56 +9,19 @@ var passportSocketIo = require("passport.socketio");
 var routes           = require(__dirname + '/routes');
 var models           = require(__dirname + '/models');
 var sequelize        = models.sequelize();
-var socketio         = require(__dirname + '/socketio');
+var socketio         = require(__dirname + '/libs/socketio');
 
 function init(config) {
     // Create actual express application instance
     var app = express();
 
+    // Create the socketio instance
+    var io = socketio();
+
     // Register some parsers
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: false }));
     app.use(cookieParser());
-
-    // Register socketio handler
-    var io = socketio();
-
-    io.on('connection', function(socket) {
-
-        socket.on('watchBoard', function(msg) {
-            if (!socket.request.user) { return; }
-            if (!_.has(msg, 'boardId') || !_.isNumber(msg.boardId)) { return; }
-
-            models.Board.findOne({ where: { id: msg.boardId }})
-                .then(function(board) {
-                    if (!board) { return; }
-                    if (board.private && board.private === false) {
-                        return socket.join('board' + msg.boardId);
-                    }
-
-                    board.hasUser(socket.request.user)
-                        .then(function(isParticipating) {
-                            if (!isParticipating) { return; }
-                            socket.join('board' + msg.boardId);
-                        })
-                        .catch(function(err) {});
-                })
-                .catch(function(err) {});
-        });
-
-        socket.on('unwatchBoard', function(msg) {
-            if (!socket.request.user) { return false; }
-
-            try {
-                console.log('Unwatch board: ' + msg.boardId);
-                socket.leave('board' + msg.boardId);
-            } catch(err) {
-                console.log(msg);
-                console.log(err);
-            }
-        });
-
-    });
 
     // Express session-handling
     var _key = 'express.sid';
@@ -118,6 +81,11 @@ function init(config) {
     // Bind routes
     app.use('/users',  routes.users);
     app.use('/boards', routes.boards);
+
+    // Bind socket-routes
+    io.on('connection', function(socket) {
+        routes.sockets(socket);
+    });
 
 
     return app;

@@ -3,7 +3,7 @@ var loggedIn  = require(__dirname + '/middleware/logged-in');
 var access    = require(__dirname + '/middleware/board-access');
 var models    = require(__dirname + '/../models');
 var sequelize = models.sequelize();
-var socketio  = require(__dirname + '/../socketio');
+var socketio  = require(__dirname + '/../libs/socketio');
 var router    = express.Router();
 
 // Authentication-handler
