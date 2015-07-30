@@ -1,0 +1,137 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<dom-module id="composer-element">
+    <link rel="import" type="css" href="/styles/css/composer.css">
+
+    <template>
+        <div id="container" class$="{{forWhich}}">
+            <div id="inProgress" class$="{{getStateClass('inProgress', composing, inProgress)}}">
+                <p><i class="fa fa-spinner"></i> Saving new <span>{{forWhich}}</span></p>
+            </div>
+
+            <div id="composer" class$="{{getStateClass('composer', composing, inProgress)}}">
+                <input type       = "text"
+                       id         = "content"
+                       on-keyup   = "handleKeyUp"
+                       maxlength$ = "{{maxLength}}">
+
+                <button class     = "btn btn-success"
+                        on-click  = "add"
+                        disabled$ = "{{!isAddEnabled(minLength, maxLength, length)}}"><i class="fa fa-plus"></i> Save</button>
+
+                <button class    = "btn btn-error"
+                        on-click = "cancel"><i class="fa fa-times"></i> Cancel</button>
+            </div>
+
+            <div id="toggleButton"
+                 class$   = "{{getStateClass('toggleButton', composing, inProgress)}}">
+                <button class    = "btn btn-success"
+                        on-click = "startComposing"><i class="fa fa-plus"></i> <span>{{caption}}</span>&hellip;</button>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'composer-element',
+            properties: {
+                forWhich: String,
+                caption: String,
+                minLength: {
+                    type: Number,
+                    value: 1
+                },
+                maxLength: {
+                    type: Number,
+                    value: 255
+                },
+                content: {
+                    type: String,
+                    readOnly: true,
+                    value: ''
+                },
+                length: {
+                    type: Number,
+                    readOnly: true,
+                    value: 0
+                },
+                composing: {
+                    type: Boolean,
+                    readOnly: true,
+                    value: false
+                },
+                inProgress: {
+                    type: Boolean,
+                    readOnly: true,
+                    value: false
+                }
+            },
+
+            getStateClass: function(name, composing, inProgress) {
+                switch(name) {
+                    case 'inProgress':  return inProgress ? '' : 'hidden';
+                    case 'composer':    return composing ? '': 'hidden';
+                    default:            return composing || inProgress ? 'hidden' : '';
+                }
+            },
+
+            startComposing: function() {
+                if (this.get('inProgress')) { return false; }
+
+                this._setComposing(true);
+                this._setInProgress(false);
+
+                this.$.content.focus();
+            },
+
+            handleKeyUp: function(e) {
+                var content = this.$.content.value;
+                this._setContent(content);
+                this._setLength(content.length);
+
+                // Send on enter
+                if (e.keyCode == 13) {
+                    this.add();
+                }
+
+                // Cancel on escape
+                if (e.keyCode == 27) {
+                    this.cancel();
+                }
+            },
+
+            isAddEnabled: function(min, max, length) {
+                return length >= min && length <= max;
+            },
+
+            add: function() {
+                if (!this.get('composing')) { return false; }
+                if (this.get('inProgress')) { return false; }
+                var content   = this.get('content');
+                var minLength = this.get('minLength');
+                var maxLength = this.get('maxLength');
+                var forWhich  = this.get('forWhich');
+
+                if (content.length < minLength ||
+                    content.length > maxLength) { return false; }
+
+                this._setComposing(false);
+                this._setInProgress(true);
+
+                this.fire('create' + forWhich, { content: content });
+            },
+
+            cancel: function() {
+                this._setComposing(false);
+                this._setInProgress(false);
+            },
+
+            reset: function() {
+                this._setComposing(false);
+                this._setInProgress(false);
+                this._setContent('');
+                this._setLength(0);
+                this.$.content.value = '';
+            },
+        });
+    </script>
+</dom-module>

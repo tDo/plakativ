@@ -3,13 +3,13 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 var debug  = require('debug')('app4:server');
 var http   = require('http');
-var config = require(__dirname + '/../config')();
+var config = require(__dirname + '/../server/config')();
 
 // Configure and connect db
-require(__dirname + '/../models/sequelize')();
+require(__dirname + '/../server/libs/sequelize')();
 
 // Create actual application
-var app  = require(__dirname + '/../index')(config);
+var app  = require(__dirname + '/../server/index')(config);
 var port = config.port;
 app.set('port', port);
 
@@ -17,7 +17,7 @@ app.set('port', port);
 var server = http.createServer(app);
 
 // Bind our socketio instance
-var io = require(__dirname + '/../libs/socketio')();
+var io = require(__dirname + '/../server/libs/socketio')();
 io.attach(server);
 
 // And finally start listening
