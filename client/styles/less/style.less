@@ -1,0 +1,27 @@
+@import "includes/variables.less";
+@import "includes/base.less";
+@import "includes/buttons.less";
+@import "includes/forms.less";
+
+html, body { height: 100%; width: 100%; }
+body {
+  margin: 0;
+  padding: 0;
+  background-color: @background-body;
+  font-size: @font-size;
+  font-family: "Helvetica Neue";
+  color: @color-main;
+  line-height: @line-height;
+}
+
+h1 { font-size: @font-size + 8px; }
+h2 { font-size: @font-size + 6px; }
+h3 { font-size: @font-size + 4px; }
+h4 { font-size: @font-size + 2px; }
+h5 { font-size: @font-size; }
+a { color: @color-link; }
+
+// Specific circumstances
+.sortable-ghost {
+  opacity: 0.2;
+}

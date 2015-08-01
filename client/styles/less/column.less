@@ -1,0 +1,58 @@
+// Holds styles for the column-element
+@import "includes/variables.less";
+
+:host {
+  position: relative;
+  margin: 0;
+  padding: 10px 10px 30px 10px;
+  min-width: 300px;
+  overflow-y: hidden;
+  box-sizing: border-box;
+  background-color: @background-column;
+  color: @color-column;
+
+  border-left: 1px dashed @border-color-column;
+
+  &:last-of-type {
+    border-right: 1px dashed @border-color-column;
+  }
+
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+header {
+  position: relative;
+  width: 100%;
+  min-height: 40px;
+  padding: 5px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+
+  .column-drag-handle {}
+
+  h2 {
+    margin: 0;
+  }
+  .group > * {
+    margin-right: 2px;
+  }
+}
+
+.cards {
+  position: relative;
+  overflow-y: scroll;
+  padding: 5px 10px 5px 10px;
+  background-color: darken(@background-column, 2.5%);
+  border-radius: @border-radius;
+  border-bottom: 2px solid darken(@background-column, 10%);
+}
+
+footer {
+  margin-top: 10px;
+  min-height: 20px;
+}

@@ -1,0 +1,63 @@
+// Holds styles for the composer-element
+@import "includes/variables.less";
+
+:host {
+  display: block;
+  min-width: 250px;
+  margin: 0;
+}
+
+#container {
+  display: block;
+  position: relative;
+  margin: 0;
+  padding: 5px 10px 5px 10px;
+  border-radius: @border-radius;
+  box-sizing: border-box;
+
+  &.Column {
+    min-width: 300px;
+    background-color: @background-column;
+    border-radius: 0;
+    border-bottom: 2px solid #c8c8c8;
+
+    #composer input {
+      background-color: darken(@background-column, 2.5%);
+      color: @color-column;
+      font-size: @font-size + 6px;
+      font-weight: bold;
+    }
+  }
+
+  &.Card {
+    min-width: 250px;
+    background-color: @background-card;
+    border: 2px solid darken(@background-card, 5%);
+    border-bottom: 2px solid darken(@background-card, 25%);
+
+    #composer input {
+      font-size: @font-size;
+      color: @color-main;
+    }
+  }
+}
+
+#inProgress {
+  font-weight: bold;
+}
+
+#composer {
+  position: relative;
+  margin: 10px 5px;
+
+  input {
+    width: 100%;
+    min-height: 30px;
+    margin: 0 0 5px 0;
+    padding: 5px;
+    border-width: 0;
+    box-sizing: border-box;
+    outline: none;
+    resize: none;
+  }
+}

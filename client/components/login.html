@@ -1,0 +1,108 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<dom-module id="login-element">
+    <style>
+        :host {
+            display: block;
+            margin: 10% auto 0 auto;
+            min-width: 300px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        form {
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            border-bottom: 2px solid #ccc;
+        }
+
+        legend { font-size: 16px; }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+        }
+        button[type="submit"] {
+            margin-top: 10px;
+        }
+    </style>
+    <template>
+        <iron-ajax
+                id            = "loginPoster"
+                url           = "/users/login"
+                method        = "POST"
+                content-type  = "application/json"
+                handle-as     = "json"
+                on-response   = "handleLoginResponse"
+                on-error      = "handleLoginError"></iron-ajax>
+
+        <form class     = "form form-stacked"
+              on-submit = "handleLogin">
+            <fieldset>
+                <legend>Login</legend>
+                <label for="username">Username</label>
+                <input id          = "username"
+                       type        = "text"
+                       placeholder = "Username"
+                       on-keyup    = "handleUsernameKeyUp">
+
+                <label for="password">Password</label>
+                <input id          = "password"
+                       type        = "password"
+                       placeholder = "Password"
+                       on-keyup    = "handlePasswordKeyUp">
+
+                <button type      = "submit"
+                        class     = "btn btn-primary btn-large"
+                        disabled$ = "{{!isLoginEnabled(username, password)}}">Login&hellip;</button>
+            </fieldset>
+        </form>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'login-element',
+
+            properties: {
+                username: {
+                    type: String,
+                    readOnly: true,
+                    value: ''
+                },
+
+                password: {
+                    type: String,
+                    readOnly: true,
+                    value: ''
+                }
+            },
+
+            handleUsernameKeyUp: function() {
+                this._setUsername(this.$.username.value);
+            },
+            handlePasswordKeyUp: function() {
+                this._setPassword(this.$.password.value);
+            },
+            isLoginEnabled: function(username, password) {
+                return username.length > 0 && password.length > 0;
+            },
+            handleLogin: function(e) {
+                e.preventDefault();
+                var username = this.get('username');
+                var password = this.get('password');
+
+                // TODO: Some "yes we are doing something stuff"
+                var r  = this.$.loginPoster;
+                r.body = JSON.stringify({ username: username, password: password });
+                r.generateRequest();
+            },
+
+            handleLoginResponse: function(e) {
+                // TODO: Verify if the login-procedure actually worked
+                this.fire('userLoggedIn', e.detail.response);
+            },
+
+            handleLoginError: function(e) {
+                console.log(e.target.lastRequest.xhr.response);
+            }
+        });
+    </script>
+</dom-module>

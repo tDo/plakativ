@@ -1,0 +1,20 @@
+// Holds styles for the estimate-element
+@import "includes/variables.less";
+
+:host {
+  position: relative;
+}
+
+.estimate {
+  position: relative;
+  display: inline-block;
+  font-size: @font-size;
+
+  &.estimate-small {
+    font-size: @font-size-small;
+  }
+
+  .fa-gavel {
+    margin-right: 2px;
+  }
+}

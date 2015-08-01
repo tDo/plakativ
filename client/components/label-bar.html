@@ -1,0 +1,30 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="size-behavior.html">
+
+<dom-module id="label-bar-element">
+    <link rel="import" type="css" href="/styles/css/label-bar.css">
+    <template>
+        <template is="dom-if" if="{{labels}}">
+            <div class$="{{computeSizeClassName('label-bar')}}">
+                <template is="dom-repeat" items="{{labels}}">
+                    <div class="label" style$="{{computeLabelColorStyle(item)}}"></div>
+                </template>
+            </div>
+        </template>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'label-bar-element',
+            behaviors: [SizeBehavior],
+            properties: {
+                labels: Array
+            },
+
+            computeLabelColorStyle: function(label) {
+                if (!label || !label.color) { return ''; }
+                return 'background-color: ' + label.color + ';';
+            }
+        });
+    </script>
+</dom-module>

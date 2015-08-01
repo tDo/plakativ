@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
+var debug  = require('debug')('app4:server');
+var http   = require('http');
+var config = require(__dirname + '/../server/config')();
+
+// Configure and connect db
+require(__dirname + '/../server/libs/sequelize')();
+
+// Create actual application
+var app  = require(__dirname + '/../server/index')(config);
+var port = config.port;
+app.set('port', port);
+
+// Create the server
+var server = http.createServer(app);
+
+// Bind our socketio instance
+var io = require(__dirname + '/../server/libs/socketio')();
+io.attach(server);
+
+// And finally start listening
+server.listen(port);
+
+function onError(error) {
+    if (error.syscall !== 'listen') {
+        throw error;
+    }
+
+    var bind = typeof port === 'string'
+        ? 'Pipe ' + port
+        : 'Port ' + port;
+
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+        case 'EACCES':
+            console.error(bind + ' requires elevated privileges');
+            process.exit(1);
+            break;
+        case 'EADDRINUSE':
+            console.error(bind + ' is already in use');
+            process.exit(1);
+            break;
+        default:
+            throw error;
+    }
+}
+function onListening() {
+    var addr = server.address();
+    var bind = typeof addr === 'string'
+        ? 'pipe ' + addr
+        : 'port ' + addr.port;
+    debug('Listening on ' + bind);
+}
+
+server.on('error', onError);
+server.on('listening', onListening);
