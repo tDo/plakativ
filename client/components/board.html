@@ -58,8 +58,15 @@
         Polymer({
             is: 'board-element',
             properties: {
-                boardId: Number,
-                board: Object
+                boardId: {
+                    type: Number,
+                    observer: '_boardIdChanged'
+                },
+
+                board: {
+                    type: Object,
+                    readOnly: true
+                }
             },
 
             behaviors: [UserDataBehavior],
@@ -69,19 +76,22 @@
                 createColumn:       'createColumn'
             },
 
-            ready: function() {
+            created: function(){
                 var that = this;
 
                 this.socket = io('http://localhost:3000');
                 this.socket.on('connect', function() {
                     that.socket.emit('watchBoard', { boardId: that.get('boardId')});
-                    // TODO: Unwatch when the board-id was changed or we detached the board-element
                 });
 
                 this.socket.on('boardUpdated', function(data) {
                     if (data.id !== that.get('boardId')) { return false; }
-                    that.set('board', data);
+                    that._setBoard(data);
                 });
+            },
+
+            ready: function() {
+                var that = this;
 
                 function addColumn(column, index) {
                     that.splice('board.Columns', index, 0, column);
@@ -96,7 +106,6 @@
                     var card = that.splice('board.Columns', oldIndex, 1)[0];
                     addColumn(card, newIndex);
                 }
-
 
                 this.sortableColumns = Sortable.create(this.$$('.columns'), {
                     group: 'columns',
@@ -124,6 +133,15 @@
                 this.fire('requestBoardUpdate');
             },
 
+            _boardIdChanged: function(newId, oldId) {
+                if (this.socket !== undefined) {
+                    this.socket.emit('unwatchBoard', { boardId: oldId });
+                    this.socket.emit('watchBoard', { boardId: newId });
+                }
+
+                this.fire('requestBoardUpdate');
+            },
+
             requestBoardUpdate: function(e) {
                 var boardId = this.get('boardId');
                 var r       = this.$.boardLoader;
@@ -133,7 +151,7 @@
 
             handleBoardLoaded: function(req) {
                 // TODO: Error handling when content not provided?
-                this.set('board', req.detail.response);
+                this._setBoard(req.detail.response);
             },
 
             createColumn: function(e) {
