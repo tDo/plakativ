@@ -1,0 +1,38 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="avatar.html">
+<link rel="import" href="user-search.html">
+
+<dom-module id="board-sidebar-element">
+    <style>
+        :host {
+            position: relative;
+            display: block;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box;;
+        }
+    </style>
+    <template>
+        <h2>Members</h2>
+        <div class="memberlist">
+            <template is="dom-repeat" items="[[board.Users]]">
+                <avatar-element user="[[item]]"></avatar-element>
+            </template>
+            <user-search-element></user-search-element>
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'board-sidebar-element',
+            properties: {
+                boardId: Number,
+                board: Object
+            },
+
+            ready: function() {
+                var that = this;
+            }
+        });
+    </script>
+</dom-module>

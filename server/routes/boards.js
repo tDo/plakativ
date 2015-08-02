@@ -1,3 +1,4 @@
+var _         = require('lodash');
 var express   = require('express');
 var loggedIn  = require(__dirname + '/middleware/logged-in');
 var access    = require(__dirname + '/middleware/board-access');
@@ -72,6 +73,27 @@ router.route('/:boardIdEager')
         // Delete the actual board
     });
 
+router.route('/:boardId/users')
+    .all(access.canExecuteAdminAction)
+    .post(function(req, res, next) {
+        if (_.isUndefined(req.body) || !_.has(req.body, 'id') || !_.isNumber(req.body.id)) {
+            return res.status(422).json({ error: { message: 'Missing users id '}});
+        }
+
+        models.User.findOne({ where: { id: req.body.id }})
+            .then(function(user) {
+                if (!user) {
+                    return res.status(400).json({ error: { message: 'User is unknown' }});
+                }
+
+                return req.board.addUser(user);
+            })
+            .then(function() {
+                res.json(true);
+                emitBoardUpdate(req.board.id);
+            })
+            .catch(function(err) { next(err); });
+    });
 
 router.route('/:boardId/columns')
     .all(access.canExecuteAdminAction)

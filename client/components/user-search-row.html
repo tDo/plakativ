@@ -1,0 +1,23 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="avatar.html">
+
+<dom-module id="user-search-row-element">
+    <template>
+        <avatar-element small user="[[user]]"></avatar-element> <span>{{user.name}}</span>
+    </template>
+    <script>
+        Polymer({
+            is: 'user-search-row-element',
+            properties: {
+                user: Object
+            },
+            listeners: {
+                'click': 'handleClick'
+            },
+
+            handleClick: function() {
+                this.fire('userSelected', this.user);
+            }
+        })
+    </script>
+</dom-module>

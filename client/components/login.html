@@ -34,6 +34,15 @@
                 on-response   = "handleLoginResponse"
                 on-error      = "handleLoginError"></iron-ajax>
 
+        <iron-ajax
+                id            = "mySession"
+                url           = "/users/me"
+                method        = "GET"
+                content-type  = "application/json"
+                handle-as     = "json"
+                on-response   = "handleMySessionResponse"
+                on-error      = "handleMySessionError"></iron-ajax>
+
         <form class     = "form form-stacked"
               on-submit = "handleLogin">
             <fieldset>
@@ -75,6 +84,17 @@
                 }
             },
 
+            ready: function() {
+                // Retrieve the login-data of a session
+                // e.g. when reloaded etc
+                var r  = this.$.mySession;
+                r.generateRequest();
+            },
+
+            handleRememberMe: function() {
+                var r  = this.$.loginPoster;
+            },
+
             handleUsernameKeyUp: function() {
                 this._setUsername(this.$.username.value);
             },
@@ -101,6 +121,15 @@
             },
 
             handleLoginError: function(e) {
+                console.log(e.target.lastRequest.xhr.response);
+            },
+
+            handleMySessionResponse: function(e) {
+                // TODO: verify response
+                this.fire('userLoggedIn', e.detail.response);
+            },
+
+            handleMySessionError: function(e) {
                 console.log(e.target.lastRequest.xhr.response);
             }
         });

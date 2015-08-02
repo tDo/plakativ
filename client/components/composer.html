@@ -89,12 +89,12 @@
                 this._setLength(content.length);
 
                 // Send on enter
-                if (e.keyCode == 13) {
+                if (e.keyCode === 13) {
                     this.add();
                 }
 
                 // Cancel on escape
-                if (e.keyCode == 27) {
+                if (e.keyCode === 27) {
                     this.cancel();
                 }
             },
