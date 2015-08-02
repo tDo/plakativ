@@ -1,4 +1,4 @@
-// Holds styles for the avatars-element
+// Holds styles for the avatar-element
 @import "includes/variables.less";
 
 :host {
@@ -7,6 +7,7 @@
   margin: 0;
   padding: 0;
   overflow: hidden;
+  vertical-align: middle;
 }
 
 .avatar {
@@ -26,5 +27,20 @@
     width: 16px;
     height: 16px;
     background-size: 16px 16px;
+  }
+}
+
+.no-avatar {
+  border: 1px solid @border-color-avatar;
+  padding: 6px;
+  text-align: center;
+  font-weight: bold;
+  box-sizing: border-box;
+  background-color: @border-color-avatar;
+
+  &.no-avatar-small {
+    padding: 0px;
+    font-size: @font-size-tiny;
+    box-sizing: content-box;
   }
 }

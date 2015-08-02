@@ -1,8 +1,24 @@
+var _        = require('lodash');
 var express  = require('express');
 var passport = require('passport');
 var models   = require(__dirname + '/../models');
 var loggedIn = require(__dirname + '/middleware/logged-in');
 var router   = express.Router();
+
+router.get('/', loggedIn, function(req, res, next) {
+    if (!_.has(req.query, 'username') || !_.isString(req.query.username)) {
+        return res.status(422).json({ error: { message: 'Missing username query' }});
+    }
+
+    models.User.findAll({
+        where: {
+            name: { $like: '%' + req.query.username + '%' }
+        },
+        limit: 10
+    }).then(function(users) {
+        return res.json(users);
+    }).catch(function(err) { next(err); });
+});
 
 router.post('/login', function(req, res, next) {
     passport.authenticate('local', function(err, user, info) {
@@ -17,6 +33,10 @@ router.post('/login', function(req, res, next) {
         });
 
     })(req, res, next);
+});
+
+router.get('/me', loggedIn, function(req, res) {
+    return res.json(req.user);
 });
 
 router.get('/logout', loggedIn, function(req, res) {

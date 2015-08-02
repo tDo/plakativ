@@ -1,0 +1,56 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="size-behavior.html">
+
+<dom-module id="avatar-element">
+    <link rel="import" type="css" href="/styles/css/avatar.css">
+
+    <template>
+        <template is="dom-if" if="{{hasAvatar(user)}}">
+            <div class$="{{computeSizeClassName('avatar')}}" style$="{{computeAvatarImage(user)}}"></div>
+        </template>
+        <template is="dom-if" if="{{!hasAvatar(user)}}">
+            <div class$="{{computeAvatarPlaceholderClassName()}}">{{computeNamePlaceholder(user.name)}}</div>
+        </template>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'avatar-element',
+            behaviors: [SizeBehavior],
+            hostAttributes: {
+                small: false
+            },
+
+            properties: {
+                user: {
+                    type: Object,
+                    // To allow sortable to clone the instance:
+                    // https://github.com/Polymer/polymer/issues/2112
+                    reflectToAttribute: true
+                }
+            },
+
+            hasAvatar: function(user) {
+                if (typeof user !== 'object' ||
+                    !user.hasOwnProperty('avatar') ||
+                    typeof user.avatar !== 'string') { return false; }
+
+                return user.avatar.length > 0;
+            },
+
+            computeAvatarPlaceholderClassName: function() {
+                return this.computeSizeClassName('avatar') + ' ' + this.computeSizeClassName('no-avatar');
+            },
+
+            computeAvatarImage: function(user) {
+                if (!user || !user.avatar) { return ''; }
+                return 'background-image: url(' + user.avatar + ');';
+            },
+
+            computeNamePlaceholder: function(name) {
+                if (typeof name !== 'string' || name.length < 1) { return ''; }
+                return name.substr(0, 2).toUpperCase();
+            }
+        });
+    </script>
+</dom-module>

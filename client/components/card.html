@@ -4,7 +4,7 @@
 <link rel="import" href="due-date.html">
 <link rel="import" href="estimate.html">
 <link rel="import" href="attachments.html">
-<link rel="import" href="avatars.html">
+<link rel="import" href="avatar.html">
 
 <dom-module id="card-element">
     <link rel="import" type="css" href="/styles/css/card.css">
@@ -23,7 +23,10 @@
                     <estimate-element small estimate="[[card.estimate]]"></estimate-element>
                 </div>
 
-                <avatars-element small users="[[card.Assignees]]"></avatars-element>
+                <template is="dom-repeat" items="[[card.Assignees]]">
+                    <avatar-element small user="[[item]]"></avatar-element>
+                </template>
+
             </div>
 
             <task-bar-element small tasks="[[card.Tasks]]"></task-bar-element>
@@ -37,6 +40,10 @@
                 boardId: Number,
                 columnId: Number,
                 card: Object
+            },
+
+            ready: function() {
+                var that = this;
             }
         });
     </script>

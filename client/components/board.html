@@ -2,6 +2,7 @@
 <link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="userdata-behavior.html">
 <link rel="import" href="board-top-bar.html">
+<link rel="import" href="board-sidebar.html">
 <link rel="import" href="column.html">
 <link rel="import" href="composer.html">
 
@@ -14,6 +15,12 @@
             content-type  = "application/json"
             handle-as     = "json"
             on-response   = "handleBoardLoaded"></iron-ajax>
+        <iron-ajax
+                id            = "userAdder"
+                method        = "POST"
+                content-type  = "application/json"
+                handle-as     = "json"
+                on-response   = "handleUserAdded"></iron-ajax>
         <iron-ajax
             id            = "columnCreator"
             method        = "POST"
@@ -46,7 +53,7 @@
                 </div>
 
                 <div class="sidebar">
-                    I am a sidebar!
+                    <board-sidebar-element boardId="[[boardId]]" board="{{board}}"></board-sidebar-element>
                 </div>
             </div>
 
@@ -73,6 +80,7 @@
 
             listeners: {
                 requestBoardUpdate: 'requestBoardUpdate',
+                addUser:            'addUser',
                 createColumn:       'createColumn'
             },
 
@@ -146,12 +154,26 @@
                 var boardId = this.get('boardId');
                 var r       = this.$.boardLoader;
                 r.url       = '/boards/' + boardId;
-                this.$.boardLoader.generateRequest();
+                r.generateRequest();
             },
 
             handleBoardLoaded: function(req) {
                 // TODO: Error handling when content not provided?
                 this._setBoard(req.detail.response);
+            },
+
+            addUser: function(e) {
+                var user = e.detail;
+                var boardId = this.get('boardId');
+                var r = this.$.userAdder;
+                r.url  = '/boards/' + boardId + '/users';
+                r.body = JSON.stringify({ id: user.id });
+                r.generateRequest();
+            },
+
+            handleUserAdded: function(e) {
+                // TODO: Some error handling would be appropriate
+                this.fire('requestBoardUpdate');
             },
 
             createColumn: function(e) {
