@@ -1,20 +1,46 @@
-var _        = require('lodash');
-var express  = require('express');
-var passport = require('passport');
-var models   = require(__dirname + '/../models');
-var loggedIn = require(__dirname + '/middleware/logged-in');
-var router   = express.Router();
+var _         = require('lodash');
+var express   = require('express');
+var passport  = require('passport');
+var models    = require(__dirname + '/../models');
+var loggedIn  = require(__dirname + '/middleware/logged-in');
+var router    = express.Router();
+
+var queryOptions = {
+    maxUsernameLength: 50,
+    minLimit: 1,
+    maxLimit: 10
+};
 
 router.get('/', loggedIn, function(req, res, next) {
-    if (!_.has(req.query, 'username') || !_.isString(req.query.username)) {
+    if (!_.has(req.query, 'username')) {
         return res.status(422).json({ error: { message: 'Missing username query' }});
     }
 
+    if (!_.isString(req.query.username)) {
+        return res.status(422).json({ error: { message: 'Username must be a string' }});
+    }
+
+    var username = req.query.username.trim();
+    if (_.isEmpty(username)) {
+        return res.status(422).json({ error: { message: 'Username may not be empty' }});
+    }
+
+    if (username.length > queryOptions.maxUsernameLength) {
+        username = username.substr(0, queryOptions.maxUsernameLength);
+    }
+
+    var limit = queryOptions.maxLimit;
+    if (_.has(req.query, 'limit')) {
+        limit = parseInt(req.query.limit);
+    }
+
+    if (!_.isFinite(limit)) { limit = queryOptions.maxLimit; }
+    if (limit > queryOptions.maxLimit) { limit = queryOptions.maxLimit; }
+    if (limit < queryOptions.minLimit) { limit = queryOptions.minLimit; }
+
     models.User.findAll({
-        where: {
-            name: { $like: '%' + req.query.username + '%' }
-        },
-        limit: 10
+        where: { name: { $like: '%' + req.query.username + '%' } },
+        limit: limit
     }).then(function(users) {
         return res.json(users);
     }).catch(function(err) { next(err); });
