@@ -170,7 +170,7 @@
                 this.debounce('executeSearch', function() {
                     var r = that.$.userSearcher;
                     r.url    = '/users/';
-                    r.params = { name: username };
+                    r.params = { name: username, limit: 10 };
                     r.generateRequest();
                 }, 200);
 

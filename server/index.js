@@ -1,14 +1,12 @@
-var _                = require('lodash');
 var express          = require('express');
 var expressSession   = require('express-session');
 var cookieParser     = require('cookie-parser');
 var bodyParser       = require('body-parser');
 var passport         = require('passport');
 var LocalStrategy    = require('passport-local').Strategy;
-var passportSocketIo = require("passport.socketio");
+var passportSocketIo = require('passport.socketio');
 var routes           = require(__dirname + '/routes');
 var models           = require(__dirname + '/models');
-var sequelize        = models.sequelize();
 var socketio         = require(__dirname + '/libs/socketio');
 
 function init(config) {
@@ -26,7 +24,7 @@ function init(config) {
     // Express session-handling
     var _key = 'express.sid';
     var _secret = 'change me to awesome config';
-    var _store = new expressSession.MemoryStore;    // replace this as soon as possible!
+    var _store = new expressSession.MemoryStore();    // replace this as soon as possible!
     var _session = expressSession({
         key: _key,
         store: _store,

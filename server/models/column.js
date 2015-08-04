@@ -5,6 +5,27 @@ var sequelize = require(__dirname + '/../libs/sequelize')();
 var helpers   = require(__dirname + '/helpers');
 
 /**
+ * Update the position for a single column
+ * @param column which shall be placed
+ * @param position which shall be applied
+ * @param transaction which shall be used
+ * @returns {bluebird|exports|module.exports}
+ */
+function saveColumnPosition(column, position, transaction) {
+    return new Promise(function(resolve, reject) {
+        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
+        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
+        position = position < 0 ? 0 : position;
+
+        column.updateAttributes({
+            position: position
+        }, { transaction: transaction })
+            .then(function() { resolve(); })
+            .catch(function(err) { reject(err); });
+    });
+}
+
+/**
  * Internal handler which can update columns positioning for a board.
  * @param board for which the columns shall be reordered.
  * @param column which shall be placed at a specific position
@@ -74,27 +95,6 @@ function saveColumnPositions(board, column, position, transaction) {
                 }
             }).catch(function(err) { reject(err); });
         }).catch(function(err) { reject(err); });
-    });
-}
-
-/**
- * Update the position for a single column
- * @param column which shall be placed
- * @param position which shall be applied
- * @param transaction which shall be used
- * @returns {bluebird|exports|module.exports}
- */
-function saveColumnPosition(column, position, transaction) {
-    return new Promise(function(resolve, reject) {
-        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
-        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
-        position = position < 0 ? 0 : position;
-
-        column.updateAttributes({
-            position: position
-        }, { transaction: transaction })
-            .then(function() { resolve(); })
-            .catch(function(err) { reject(err); });
     });
 }
 

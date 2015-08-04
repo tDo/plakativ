@@ -1,6 +1,4 @@
-var _         = require('lodash');
-var models    = require(__dirname + '/../../models');
-var sequelize = models.sequelize();
+var models = require(__dirname + '/../../models');
 
 /**
  * This internal private helper verifies that the user and board
@@ -8,10 +6,9 @@ var sequelize = models.sequelize();
  * model-types.
  * @param req
  * @param res
- * @param next
  * @returns {boolean}
  */
-function generalCheck(req, res, next) {
+function generalCheck(req, res) {
     // User-object passed?
     if (!req.user) {
         res.status(401).json({ error: { message: 'You must be logged in to access this board' }});
@@ -36,7 +33,7 @@ function generalCheck(req, res, next) {
  * @param next
  */
 function canRead(req, res, next) {
-    if (!generalCheck(req, res, next)) { return; }
+    if (!generalCheck(req, res)) { return; }
 
     // Private or public?
     if(req.board.private && req.board.private === false) {
@@ -64,7 +61,7 @@ function canRead(req, res, next) {
  * @param next
  */
 function canExecuteUserAction(req, res, next) {
-    if (!generalCheck(req, res, next)) { return; }
+    if (!generalCheck(req, res)) { return; }
 
     req.board.hasUser(req.user)
         .then(function(isParticipating) {
@@ -84,7 +81,7 @@ function canExecuteUserAction(req, res, next) {
  * @param next
  */
 function canExecuteAdminAction(req, res, next) {
-    if (!generalCheck(req, res, next)) { return; }
+    if (!generalCheck(req, res)) { return; }
     req.board.hasUser(req.user)
         .then(function(isParticipating) {
             if (!isParticipating) {

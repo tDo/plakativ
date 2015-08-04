@@ -6,6 +6,30 @@ var helpers   = require(__dirname + '/helpers');
 
 
 /**
+ * Update the position and column for a single card
+ * @param column where the card shall be placed
+ * @param card which shall be handled
+ * @param position where it shall be located
+ * @param transaction which shall be used
+ * @returns {bluebird|exports|module.exports}
+ */
+function saveCardPosition(column, card, position, transaction) {
+    return new Promise(function(resolve, reject) {
+        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
+        if (!sequelize.models.Card.isCard(card)) { return reject(new Error('Invalid card')); }
+        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
+        position = position < 0 ? 0 : position;
+
+        card.updateAttributes({
+            position: position,
+            ColumnId: column.id
+        }, { transaction: transaction })
+            .then(function() { resolve(); })
+            .catch(function(err) { reject(err); });
+    });
+}
+
+/**
  * Internal handler which can update (E.g. rearrange positions and place a new card in order
  * or remove it from a column at all).
  * @param column which shall be updated
@@ -81,30 +105,6 @@ function saveCardPositions(column, card, position, transaction) {
             .catch(function(err) { reject(err); });
 
         }).catch(function(err) { reject(err); });
-    });
-}
-
-/**
- * Update the position and column for a single card
- * @param column where the card shall be placed
- * @param card which shall be handled
- * @param position where it shall be located
- * @param transaction which shall be used
- * @returns {bluebird|exports|module.exports}
- */
-function saveCardPosition(column, card, position, transaction) {
-    return new Promise(function(resolve, reject) {
-        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
-        if (!sequelize.models.Card.isCard(card)) { return reject(new Error('Invalid card')); }
-        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
-        position = position < 0 ? 0 : position;
-
-        card.updateAttributes({
-            position: position,
-            ColumnId: column.id
-        }, { transaction: transaction })
-            .then(function() { resolve(); })
-            .catch(function(err) { reject(err); });
     });
 }
 
@@ -294,7 +294,7 @@ var Card = sequelize.define('Card', {
                         if (cardColumn.id === column.id) {
                             // Move in same column
                             sequelize.transaction(function(t) {
-                                return saveCardPositions(column, that, offset, t)
+                                return saveCardPositions(column, that, offset, t);
                             })
                               .then(function() { resolve(); })
                               .catch(function(err) { reject(err); });
@@ -304,7 +304,7 @@ var Card = sequelize.define('Card', {
                             sequelize.transaction(function(t) {
                                 return saveCardPositions(cardColumn, that, 0, t).then(function() {
                                     return saveCardPositions(column, that, offset, t);
-                                })
+                                });
                             })
                                 .then(function() { resolve(); })
                                 .catch(function(err) { reject(err); });

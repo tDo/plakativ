@@ -45,7 +45,7 @@ function toOrder(req) {
     var order = 'ASC';
     if (_.has(req.query, 'order') && _.isString(req.query.order)) {
         var tmp = req.query.order.toUpperCase();
-        order = (tmp == 'ASC' || tmp === 'DESC') ? tmp : order;
+        order = (tmp === 'ASC' || tmp === 'DESC') ? tmp : order;
     }
     return ['name', order];
 }
@@ -86,7 +86,7 @@ router.get('/count', loggedIn, function(req, res, next) {
 });
 
 router.post('/login', function(req, res, next) {
-    passport.authenticate('local', function(err, user, info) {
+    passport.authenticate('local', function(err, user) {
         if (err) { next(err); }
         if (!user) {
             return res.status(400).json({ error: { message: 'Username or password were incorrect' }});

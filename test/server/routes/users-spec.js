@@ -15,7 +15,7 @@ describe('/users', function() {
                 var users = [];
                 users.push({ name: 'aaaisjustme', password: 'justsomething' });
                 users.push({ name: 'zzzisjustme', password: 'justsomething' });
-                for (var i = 0; i < 55; i++) {
+                for (var i = 0; i < 55; i = i + 1) {
                     users.push({ name: 'user'+ (i + 1), password: 'Dontcareatall' });
                 }
 
@@ -100,7 +100,7 @@ describe('/users', function() {
                         res.status.should.equal(200);
                         res.body.length.should.equal(5);
 
-                        res.body.forEach(function(val, idx) {
+                        res.body.forEach(function(val) {
                             should.exist(val);
                             val.should.have.property('id');
                             val.should.have.property('name');

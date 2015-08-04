@@ -1,6 +1,6 @@
 process.env.NODE_ENV = 'test';
 
-var should  = require('should');
+require('should');
 var loggedIn = require('../../../../server/routes/middleware/logged-in.js');
 
 describe('middleware logged-in', function() {
@@ -12,11 +12,11 @@ describe('middleware logged-in', function() {
         resMock = {
             status: function(status) {
                 lastStatus = status;
-                return { json: function(value) { lastJson = value; } }
+                return { json: function(value) { lastJson = value; } };
             }
         };
 
-        nextMock = function() { nextCalled = true; }
+        nextMock = function() { nextCalled = true; };
     });
 
     it('should deny access if no user was passed in via the request', function() {

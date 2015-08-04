@@ -22,11 +22,10 @@ var Task = sequelize.define('Task', {
         isTask: function(obj) {
             if (!helpers.isModelOfType(obj, Task)) { return false; }
             return !obj.isNewRecord;
-        },
-
-        make: function(card, taskData) {
-            throw new Error('Not implemented');
         }
+        //make: function(card, taskData) {
+        //    throw new Error('Not implemented');
+        //}
     }
 });
 
