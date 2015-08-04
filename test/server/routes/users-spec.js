@@ -11,32 +11,25 @@ describe('/users', function() {
     before(function(done) {
         helpers.createTestDatabase()
             .then(function() { return models.User.make({ name: 'testuser', password: 'testpassword'}); })
+            .then(function() {
+                var users = [];
+                users.push({ name: 'aaaisjustme', password: 'justsomething' });
+                users.push({ name: 'zzzisjustme', password: 'justsomething' });
+                for (var i = 0; i < 55; i++) {
+                    users.push({ name: 'user'+ (i + 1), password: 'Dontcareatall' });
+                }
+
+                return models.User.bulkCreate(users);
+            })
             .then(function() { done(); })
             .catch(function(err) { done(err); });
     });
 
     describe('GET /users', function() {
-        before(function(done) {
-            models.User.make({ name: 'user1', password: 'testpassword'})
-                .then(function() { return models.User.make({ name: 'user2', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user3', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user4', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user5', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user6', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user7', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user8', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user9', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user10', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'user11', password: 'testpassword'}); })
-                .then(function() { return models.User.make({ name: 'linus', password: 'testpassword'}); })
-                .then(function() { done(); })
-                .catch(function(err) { done(err); });
-        });
-
         it('should return an error if no user-session exists', function(done) {
             request(app)
                 .get('/users/')
-                .query('username', 'user')
+                .query({ name: 'user' })
                 .expect('Content-Type', /json/)
                 .expect(401)
                 .end(function(err, res) {
@@ -49,39 +42,48 @@ describe('/users', function() {
                 });
         });
 
-        it('should not accept a missing username', function(done) {
+        it('should not reduce on a missing name', function(done) {
             helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
                 agent.get('/users/')
-                    .query({ limit: 5 })
+                    .query({ limit: 1, order: 'ASC' })
                     .set('Accept', 'application/json')
                     .end(function(err, res) {
-                        res.status.should.equal(422);
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(1);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('aaaisjustme');
 
                         done();
                     });
             });
         });
 
-        it('should not accept an empty username', function(done) {
+        it('should ignore an empty name query', function(done) {
             helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
                 agent.get('/users/')
-                    .query({ username: '' })
+                    .query({ limit: 1, name: '', order: 'ASC' })
                     .set('Accept', 'application/json')
                     .end(function(err, res) {
-                        res.status.should.equal(422);
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(1);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('aaaisjustme');
 
                         done();
                     });
             });
         });
 
-        it('should not accept a whitespace only username', function(done) {
+        it('should ignore a whitespace only name', function(done) {
             helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
                 agent.get('/users/')
-                    .query({ username: '   \t   ' })
+                    .query({ limit: 1, name: '   \t   ', order: 'ASC' })
                     .set('Accept', 'application/json')
                     .end(function(err, res) {
-                        res.status.should.equal(422);
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(1);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('aaaisjustme');
 
                         done();
                     });
@@ -91,7 +93,7 @@ describe('/users', function() {
         it('should return a list of matching users and limit the amount to the passed limit', function(done) {
             helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
                 agent.get('/users/')
-                    .query({ username: 'user', limit: 5 })
+                    .query({ name: 'user', limit: 5 })
                     .set('Accept', 'application/json')
                     .end(function(err, res) {
                         should.not.exist(err);
@@ -110,15 +112,15 @@ describe('/users', function() {
             });
         });
 
-        it('should reduce the maximum result limit to 10 if a higher limit was passed', function(done) {
+        it('should reduce the maximum result limit to 50 if a higher limit was passed', function(done) {
             helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
                 agent.get('/users/')
-                    .query({ username: 'user', limit: 12 })
+                    .query({ name: 'user', limit: 52 })
                     .set('Accept', 'application/json')
                     .end(function(err, res) {
                         should.not.exist(err);
                         res.status.should.equal(200);
-                        res.body.length.should.equal(10);
+                        res.body.length.should.equal(50);
 
                         done();
                     });
@@ -128,7 +130,7 @@ describe('/users', function() {
         it('should increase the limit to 1 if a smaller limit was passed', function(done) {
             helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
                 agent.get('/users/')
-                    .query({ username: 'user', limit: -1 })
+                    .query({ name: 'user', limit: -1 })
                     .set('Accept', 'application/json')
                     .end(function(err, res) {
                         should.not.exist(err);
@@ -143,12 +145,12 @@ describe('/users', function() {
         it('should use the default maximum limit if none was passed', function(done) {
             helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
                 agent.get('/users/')
-                    .query({ username: 'user' })
+                    .query({ name: 'user' })
                     .set('Accept', 'application/json')
                     .end(function(err, res) {
                         should.not.exist(err);
                         res.status.should.equal(200);
-                        res.body.length.should.equal(10);
+                        res.body.length.should.equal(50);
 
                         done();
                     });
@@ -158,12 +160,12 @@ describe('/users', function() {
         it('should use the default maximum limit if the limit was not passed as a number', function(done) {
             helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
                 agent.get('/users/')
-                    .query({ username: 'user', limit: 'fnord' })
+                    .query({ name: 'user', limit: 'fnord' })
                     .set('Accept', 'application/json')
                     .end(function(err, res) {
                         should.not.exist(err);
                         res.status.should.equal(200);
-                        res.body.length.should.equal(10);
+                        res.body.length.should.equal(50);
 
                         done();
                     });
@@ -179,6 +181,147 @@ describe('/users', function() {
                         should.not.exist(err);
                         res.status.should.equal(200);
                         res.body.length.should.equal(5);
+
+                        done();
+                    });
+            });
+        });
+
+        it('should order ascending', function(done) {
+            helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
+                agent.get('/users/')
+                    .query({ limit: 1, order: 'aSc' })
+                    .set('Accept', 'application/json')
+                    .end(function(err, res) {
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(1);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('aaaisjustme');
+
+                        done();
+                    });
+            });
+        });
+
+        it('should order descending', function(done) {
+            helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
+                agent.get('/users/')
+                    .query({ limit: 1, order: 'dEsC' })
+                    .set('Accept', 'application/json')
+                    .end(function(err, res) {
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(1);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('zzzisjustme');
+
+                        done();
+                    });
+            });
+        });
+
+        it('should order fall back to ascending order if the query parameter is invalid', function(done) {
+            helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
+                agent.get('/users/')
+                    .query({ limit: 1, order: 'fnord' })
+                    .set('Accept', 'application/json')
+                    .end(function(err, res) {
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(1);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('aaaisjustme');
+
+                        done();
+                    });
+            });
+        });
+
+        it('should apply an offset', function(done) {
+            helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
+                agent.get('/users/')
+                    .query({ limit: 2, order: 'asc', offset: 1 })
+                    .set('Accept', 'application/json')
+                    .end(function(err, res) {
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(2);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('testuser');
+
+                        done();
+                    });
+            });
+        });
+
+        it('should start at 0 if the offset is negative', function(done) {
+            helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
+                agent.get('/users/')
+                    .query({ limit: 2, order: 'asc', offset: -1 })
+                    .set('Accept', 'application/json')
+                    .end(function(err, res) {
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(2);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('aaaisjustme');
+
+                        done();
+                    });
+            });
+        });
+
+        it('should start at 0 if the offset is not a number', function(done) {
+            helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
+                agent.get('/users/')
+                    .query({ limit: 2, order: 'asc', offset: 'NaN' })
+                    .set('Accept', 'application/json')
+                    .end(function(err, res) {
+                        res.status.should.equal(200);
+                        res.body.length.should.equal(2);
+                        res.body[0].should.have.property('name');
+                        res.body[0].name.should.equal('aaaisjustme');
+
+                        done();
+                    });
+            });
+        });
+    });
+
+    describe('GET /users/count', function() {
+        it('should return an error if no user-session exists', function(done) {
+            request(app)
+                .get('/users/count')
+                .query({ name: 'user' })
+                .expect('Content-Type', /json/)
+                .expect(401)
+                .end(function(err, res) {
+                    if (err) { return done(err); }
+
+                    res.body.should.have.property('error');
+                    res.body.error.should.have.property('message');
+                    res.body.error.message.should.match(/You must be logged in to call this route/);
+                    done();
+                });
+        });
+
+        it('should return the total count if no username query option was passed', function(done) {
+            helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
+                agent.get('/users/count')
+                    .set('Accept', 'application/json')
+                    .end(function(err, res) {
+                        res.status.should.equal(200);
+                        res.body.should.equal(58);
+
+                        done();
+                    });
+            });
+        });
+
+        it('should return the count of matched users', function(done) {
+            helpers.doLogin(app, 'testuser', 'testpassword', function(agent) {
+                agent.get('/users/count')
+                    .query({ name: 'user'})
+                    .set('Accept', 'application/json')
+                    .end(function(err, res) {
+                        res.status.should.equal(200);
+                        res.body.should.equal(56);
 
                         done();
                     });
