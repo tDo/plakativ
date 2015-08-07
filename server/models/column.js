@@ -3,7 +3,6 @@ var _         = require('lodash');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
 var helpers   = require(__dirname + '/helpers');
-var reorder   = require(__dirname + '/../libs/reorder');
 
 var Column = sequelize.define('Column', {
     position: {
@@ -92,7 +91,7 @@ var Column = sequelize.define('Column', {
 
                         // Move it
                         sequelize.transaction(function(t) {
-                            return reorder(board, that, offset, t, {
+                            return helpers.reorder(board, that, offset, t, {
                                 parentModel: sequelize.models.Board,
                                 childModel:  sequelize.models.Column,
                                 fk: 'BoardId'

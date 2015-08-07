@@ -3,7 +3,6 @@ var _         = require('lodash');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
 var helpers   = require(__dirname + '/helpers');
-var reorder   = require(__dirname + '/../libs/reorder');
 
 var Card = sequelize.define('Card', {
     position: {
@@ -199,7 +198,7 @@ var Card = sequelize.define('Card', {
                         if (cardColumn.id === column.id) {
                             // Move in same column
                             sequelize.transaction(function(t) {
-                                return reorder(column, that, offset, t, orderOpts);
+                                return helpers.reorder(column, that, offset, t, orderOpts);
                             })
                               .then(function() { resolve(); })
                               .catch(function(err) { reject(err); });
@@ -207,8 +206,8 @@ var Card = sequelize.define('Card', {
                         } else {
                             // Move to other columns
                             sequelize.transaction(function(t) {
-                                return reorder(cardColumn, that, 0, t, orderOpts).then(function() {
-                                    return reorder(column, that, offset, t, orderOpts);
+                                return helpers.reorder(cardColumn, that, 0, t, orderOpts).then(function() {
+                                    return helpers.reorder(column, that, offset, t, orderOpts);
                                 });
                             })
                                 .then(function() { resolve(); })
