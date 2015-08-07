@@ -146,7 +146,7 @@ function reorder(parent, item, position, transaction, options) {
                 }).catch(function(err) { reject(err); });
             }).catch(function(err) { reject(err); });
     });
-};
+}
 
 module.exports.isModelOfType = isModelOfType;
 module.exports.reorder = reorder;

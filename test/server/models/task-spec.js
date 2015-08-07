@@ -27,7 +27,7 @@ describe('Tasks', function() {
                 .catch(function(err) {
                     err.message.should.match(/Invalid card/);
                     done();
-                })
+                });
         });
 
         it('should not allow task creation for non-existing cards', function(done) {
@@ -37,7 +37,7 @@ describe('Tasks', function() {
                 .catch(function(err) {
                     err.message.should.match(/Invalid card/);
                     done();
-                })
+                });
         });
 
         it('should not allow task creation without a title', function(done) {
@@ -121,8 +121,8 @@ describe('Tasks', function() {
                         .catch(function(err) {
                             err.message.should.match(/Position offset must be numeric/);
                             done();
-                        })
-                })
+                        });
+                });
         });
 
         it('should move a task to the beginning', function(done) {

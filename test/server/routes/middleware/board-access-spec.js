@@ -11,7 +11,7 @@ describe('middlware board-access', function() {
     function makeResMock(cb) {
         return {
             status: function(status) {
-                return { json: function(value) { cb(status, value) } };
+                return { json: function(value) { cb(status, value); } };
             }
         };
     }
@@ -31,7 +31,7 @@ describe('middlware board-access', function() {
                 notUserBoard = b;
                 done();
             })
-            .catch(function(err) { done(err); })
+            .catch(function(err) { done(err); });
     });
 
     describe('Can read', function() {
