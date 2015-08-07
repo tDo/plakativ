@@ -2,7 +2,6 @@ var _         = require('lodash');
 var Promise   = require('bluebird');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
-var reorder   = require(__dirname + '/../libs/reorder');
 var helpers   = require(__dirname + '/helpers');
 
 var Task = sequelize.define('Task', {
@@ -89,7 +88,7 @@ var Task = sequelize.define('Task', {
 
                         // Move it
                         sequelize.transaction(function(t) {
-                            return reorder(card, that, offset, t, {
+                            return helpers.reorder(card, that, offset, t, {
                                 parentModel: sequelize.models.Card,
                                 childModel:  sequelize.models.Task,
                                 fk: 'CardId'
