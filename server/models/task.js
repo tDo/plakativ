@@ -2,101 +2,8 @@ var _         = require('lodash');
 var Promise   = require('bluebird');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
+var reorder   = require(__dirname + '/../libs/reorder');
 var helpers   = require(__dirname + '/helpers');
-
-/**
- * Update the position of a single task
- * @param task which shall be placed
- * @param position which shall be applied
- * @param transaction which shall be used
- * @returns {bluebird|exports|module.exports}
- */
-function saveTaskPosition(task, position, transaction) {
-    return new Promise(function(resolve, reject) {
-        if (!sequelize.models.Task.isTask(task)) { return reject(new Error('Invalid task')); }
-        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
-        position = position < 0 ? 0 : position;
-
-        task.updateAttributes({
-            position: position
-        }, { transaction: transaction })
-            .then(function() { resolve(); })
-            .catch(function(err) { reject(err); });
-    });
-}
-
-/**
- * Internal handler can update task positions on a card
- * @param card where the task is located
- * @param task which shall be placed at a specific position
- * @param position where the card shall be placed
- * @param transaction which shall be used
- * @returns {bluebird|exports|module.exports}
- */
-function saveTaskPositions(card, task, position, transaction) {
-    var offset = 1;
-    var index  = 0;
-
-    function handleNext(tasks, resolve, reject) {
-        if (index >= tasks.length) { return resolve(); }
-        if (position === offset) {
-            // If we found the offset for the current task, place it there
-            saveTaskPosition(task, position, transaction)
-                .then(function() {
-                    offset = offset + 1;
-                    return saveTaskPosition(tasks[index], offset, transaction);
-                })
-                .then(function() {
-                    index = index + 1;
-                    offset = offset + 1;
-                    handleNext(tasks, resolve, reject);
-                })
-                .catch(function(err) { reject(err); });
-        } else {
-            // If we are at any other offset, just handle the position for that task
-            saveTaskPosition(tasks[index], offset, transaction)
-                .then(function() {
-                    index = index + 1;
-                    offset = offset + 1;
-                    handleNext(tasks, resolve, reject);
-                })
-                .catch(function(err) { reject(err); });
-        }
-    }
-
-    return new Promise(function(resolve, reject) {
-        if (!sequelize.models.Card.isCard(card)) { return reject(new Error('Invalid card')); }
-        if (!sequelize.models.Task.isTask(task)) { return reject(new Error('Invalid task')); }
-        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
-        position = position < 0 ? 0 : position;
-
-        sequelize.models.Task.findAll({
-            where: {
-                CardId: card.id,
-                id: { $ne: task.id }
-            },
-            order: [['position', 'ASC']],
-            transaction: transaction
-        }).then(function(tasks) {
-            if (!Array.isArray(tasks)) { return reject(new Error('Failed to retrieve tasks for reordering')); }
-            var prom = new Promise(function(resolveSub, rejectSub) {
-                // Handle all tasks we just retrieved
-                handleNext(tasks, resolveSub, rejectSub);
-            });
-
-            prom.then(function() {
-                if (position >= offset) {
-                    // Attach task to end
-                    saveTaskPosition(task, offset, transaction)
-                        .then(function() { resolve(); })
-                        .catch(function(err) { reject(err); });
-                } else {
-                    resolve();
-                }
-            }).catch(function(err) { reject(err); });
-        }).catch(function(err) { reject(err); });
-    });
-}
 
 var Task = sequelize.define('Task', {
     position: {
@@ -182,7 +89,11 @@ var Task = sequelize.define('Task', {
 
                         // Move it
                         sequelize.transaction(function(t) {
-                            return saveTaskPositions(card, that, offset, t);
+                            return reorder(card, that, offset, t, {
+                                parentModel: sequelize.models.Card,
+                                childModel:  sequelize.models.Task,
+                                fk: 'CardId'
+                            });
                         })
                             .then(function() { resolve(); })
                             .catch(function(err) { reject(err); });
