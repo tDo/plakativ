@@ -1,3 +1,4 @@
+var Promise   = require('bluebird');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
 var helpers   = require(__dirname + '/helpers');

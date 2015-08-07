@@ -3,100 +3,7 @@ var _         = require('lodash');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
 var helpers   = require(__dirname + '/helpers');
-
-/**
- * Internal handler which can update columns positioning for a board.
- * @param board for which the columns shall be reordered.
- * @param column which shall be placed at a specific position
- * @param position where the columns shall be placed
- * @param transaction which shall be used
- * @returns {bluebird|exports|module.exports}
- */
-function saveColumnPositions(board, column, position, transaction) {
-    var offset = 1;
-    var index  = 0;
-
-    function handleNext(columns, resolve, reject) {
-        if (index >= columns.length) { return resolve(); }
-        if (position === offset) {
-            // If we found the offset for the current column, place it there
-            saveColumnPosition(column, position, transaction)
-                .then(function() {
-                    offset = offset + 1;
-                    return saveColumnPosition(columns[index], offset, transaction);
-                })
-                .then(function() {
-                    index = index + 1;
-                    offset = offset + 1;
-                    handleNext(columns, resolve, reject);
-                })
-                .catch(function(err) { reject(err); });
-        } else {
-            // If we are at any other offset, just handle the position for that column
-            saveColumnPosition(columns[index], offset, transaction)
-                .then(function() {
-                    index = index + 1;
-                    offset = offset + 1;
-                    handleNext(columns, resolve, reject);
-                })
-                .catch(function(err) { reject(err); });
-        }
-    }
-
-    return new Promise(function(resolve, reject) {
-        if (!sequelize.models.Board.isBoard(board)) { return reject(new Error('Invalid board')); }
-        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
-        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
-        position = position < 0 ? 0 : position;
-
-        sequelize.models.Column.findAll({
-            where: {
-                BoardId: board.id,
-                id: { $ne: column.id }
-            },
-            order: [['position', 'ASC']],
-            transaction: transaction
-        }).then(function(columns) {
-            if (!Array.isArray(columns)) { return reject(new Error('Failed to retrieve columns for reordering')); }
-            var prom = new Promise(function(resolveSub, rejectSub) {
-                // Handle all columns we just retrieved
-                handleNext(columns, resolveSub, rejectSub);
-            });
-
-            prom.then(function() {
-                if (position >= offset) {
-                    // Attach column to end
-                    saveColumnPosition(column, offset, transaction)
-                        .then(function() { resolve(); })
-                        .catch(function(err) { reject(err); });
-                } else {
-                    resolve();
-                }
-            }).catch(function(err) { reject(err); });
-        }).catch(function(err) { reject(err); });
-    });
-}
-
-/**
- * Update the position for a single column
- * @param column which shall be placed
- * @param position which shall be applied
- * @param transaction which shall be used
- * @returns {bluebird|exports|module.exports}
- */
-function saveColumnPosition(column, position, transaction) {
-    return new Promise(function(resolve, reject) {
-        if (!sequelize.models.Column.isColumn(column)) { return reject(new Error('Invalid column')); }
-        if (!_.isNumber(position) && !_.isNaN(position)) { return reject(new Error('Position must be numeric')); }
-        position = position < 0 ? 0 : position;
-
-        column.updateAttributes({
-            position: position
-        }, { transaction: transaction })
-            .then(function() { resolve(); })
-            .catch(function(err) { reject(err); });
-    });
-}
+var reorder   = require(__dirname + '/../libs/reorder');
 
 var Column = sequelize.define('Column', {
     position: {
@@ -185,7 +92,11 @@ var Column = sequelize.define('Column', {
 
                         // Move it
                         sequelize.transaction(function(t) {
-                            return saveColumnPositions(board, that, offset, t);
+                            return reorder(board, that, offset, t, {
+                                parentModel: sequelize.models.Board,
+                                childModel:  sequelize.models.Column,
+                                fk: 'BoardId'
+                            });
                         })
                             .then(function() { resolve(); })
                             .catch(function(err) { reject(err); });

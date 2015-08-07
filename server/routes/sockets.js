@@ -33,13 +33,13 @@ module.exports = function(socket) {
         canReadBoard(socket, msg)
             .then(function(board) {
                 socket.join('board' + board.id);
-            }).catch(function() {})
+            }).catch(function() {});
     });
 
     socket.on('unwatchBoard', function(msg) {
         canReadBoard(socket, msg)
             .then(function(board) {
                 socket.leave('board' + board.id);
-            }).catch(function() {})
+            }).catch(function() {});
     });
 };

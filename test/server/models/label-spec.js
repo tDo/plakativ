@@ -23,7 +23,7 @@ describe('Labels', function() {
                 .catch(function(err) {
                     err.message.should.match(/Invalid board/);
                     done();
-                })
+                });
         });
 
         it('should not allow label-creation for a non-existing board', function(done) {

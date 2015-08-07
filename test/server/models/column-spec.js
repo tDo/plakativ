@@ -86,7 +86,7 @@ describe('Columns', function() {
         });
 
         it('should not accept a non-numeric offset', function(done) {
-            models.Column.findOne({ where: { title: 'Col C', boardId: board.id }})
+            models.Column.findOne({ where: { title: 'Col C', BoardId: board.id }})
                 .then(function(colC) {
                     colC.moveTo('Not a number')
                         .then(function() { done(new Error('Accepted non-numeric offset')); })

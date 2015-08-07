@@ -157,7 +157,7 @@ describe('Boards', function() {
 
         it('should promote a user to admin', function(done) {
             board.addUser(users[0], { admin: false })
-                .then(function() { return board.getUsers() })
+                .then(function() { return board.getUsers(); })
                 .then(function(u) {
                     u[1].BoardUsers.admin.should.equal(false);
                     u[1].BoardUsers.admin = true;
@@ -173,7 +173,7 @@ describe('Boards', function() {
 
         it('should degrade an admin to user', function(done) {
             board.addUser(users[0], { admin: true })
-                .then(function() { return board.getUsers() })
+                .then(function() { return board.getUsers(); })
                 .then(function(u) {
                     u[1].BoardUsers.admin.should.equal(true);
                     u[1].BoardUsers.admin = false;

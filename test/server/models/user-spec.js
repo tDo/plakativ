@@ -1,5 +1,5 @@
 process.env.NODE_ENV = 'test';
-var should  = require('should');
+require('should');
 var helpers = require(__dirname + '/../helpers');
 var models  = require(__dirname + '/../../../server/models');
 
