@@ -101,6 +101,7 @@ var Column = sequelize.define('Column', {
 
                     return that.save({ transaction: t })
                         .then(function() {
+                            // And update the position if required
                             if (data.position !== that.position) {
                                 return that.moveTo(data.position, t);
                             } else {
@@ -120,7 +121,7 @@ var Column = sequelize.define('Column', {
          * index based 0-offset). The function is transaction-protected and will also ensure that order does not
          * become fragmented.
          * @param offset where the column shall be placed in overall order
-         * @param {object} [transaction] transaction Optional transaction which shall be used instead of the internal one
+         * @param {object} [transaction] Optional transaction which shall be used instead of the internal one
          * @returns {*|Promise}
          */
         moveTo: function(offset, transaction) {

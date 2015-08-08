@@ -1,5 +1,5 @@
 process.env.NODE_ENV = 'test';
-require('should');
+var should  = require('should');
 var helpers = require(__dirname + '/../helpers');
 var models  = require(__dirname + '/../../../server/models');
 
@@ -265,6 +265,114 @@ describe('Cards', function() {
         });
     });
 
+    describe('Patching', function() {
+        beforeEach(function(done) {
+            // Create a few posts for both columns
+            // First column
+            return models.Card.make(columns[0], { title: 'CardAA' })
+                .then(function() { return models.Card.make(columns[0], { title: 'CardAB'}); })
+                .then(function() { return models.Card.make(columns[0], { title: 'CardAC'}); })
+                .then(function() { return models.Card.make(columns[0], { title: 'CardAD'}); })
+                // Second column
+                .then(function() { return models.Card.make(columns[1], { title: 'CardBA'}); })
+                .then(function() { return models.Card.make(columns[1], { title: 'CardBB'}); })
+                .then(function() { return models.Card.make(columns[1], { title: 'CardBC'}); })
+                .then(function() { return models.Card.make(columns[1], { title: 'CardBD'}); })
+                // And done
+                .then(function() { done(); })
+                .catch(function(err) { done(err); });
+        });
+
+        it('can patch static fields', function(done) {
+            var id;
+            models.Card.findOne({ where: { title: 'CardAA'}})
+                .then(function(card) {
+                    id = card.id;
+                    return card.patch([
+                        { op: 'replace', path: '/title', value: 'New title' },
+                        { op: 'replace', path: '/description', value: 'New description'},
+                        { op: 'replace', path: '/dueDate', value: '2015-03-21'},
+                        { op: 'replace', path: '/estimate', value: 10 }
+                    ]);
+                })
+                .then(function() { return models.Card.findOne({ where: { id: id }}); })
+                .then(function(card) {
+                    card.title.should.equal('New title');
+                    card.description.should.equal('New description');
+                    card.dueDate.getFullYear().should.equal(2015);
+                    (card.dueDate.getMonth() + 1).should.equal(3);
+                    card.dueDate.getDate().should.equal(21);
+                    card.estimate.should.equal(10);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should apply default model validation to the fields', function(done) {
+            models.Card.findOne({ where: { title: 'CardAA'}})
+                .then(function(card) {
+                    return card.patch([
+                        { op: 'replace', path: '/title', value: ''},
+                        { op: 'replace', path: '/description', value: null },
+                        { op: 'replace', path: '/dueDate', value: 'not a date'},
+                        { op: 'replace', path: '/estimate', value: -1 }
+                    ]);
+                })
+                .then(function() { done(new Error('Accepted invalid field-data')); })
+                .catch(function(err) {
+                    should.exist(err);
+                    err.message.should.match(/Validation error:/);
+                    done();
+                });
+        });
+
+        it('should be able to move a card using the patch-handler', function(done) {
+            models.Card.findOne({ where: { title: 'CardAC', ColumnId: columns[0].id }})
+                .then(function(card) {
+                    return card.patch([
+                        { op: 'replace', path: '/ColumnId', value: columns[1].id },
+                        { op: 'replace', path: '/position', value: 1 }
+                    ]);
+                })
+                .then(function() { return columns[1].getCards({ order: 'position asc'}); })
+                .then(function(cards) {
+                    cards.length.should.equal(5);
+
+                    cards[0].title.should.equal('CardAC');
+                    cards[0].position.should.equal(1);
+
+                    cards[1].title.should.equal('CardBA');
+                    cards[1].position.should.equal(2);
+
+                    cards[2].title.should.equal('CardBB');
+                    cards[2].position.should.equal(3);
+
+                    cards[3].title.should.equal('CardBC');
+                    cards[3].position.should.equal(4);
+
+                    cards[4].title.should.equal('CardBD');
+                    cards[4].position.should.equal(5);
+
+                    return columns[0].getCards({ order: 'position asc'});
+                })
+                .then(function(cards) {
+                    cards.length.should.equal(3);
+
+                    cards[0].title.should.equal('CardAA');
+                    cards[0].position.should.equal(1);
+
+                    cards[1].title.should.equal('CardAB');
+                    cards[1].position.should.equal(2);
+
+                    cards[2].title.should.equal('CardAD');
+                    cards[2].position.should.equal(3);
+
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+    });
+
     describe('User assignment', function() {
         beforeEach(function(done) {
             return models.Card.make(columns[0], { title: 'CardAA' })
@@ -381,6 +489,8 @@ describe('Cards', function() {
                 .catch(function(err) { done(err); });
         });
     });
+
+
 
     describe('Label assignment', function() {
         beforeEach(function(done) {

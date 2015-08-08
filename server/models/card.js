@@ -2,6 +2,7 @@ var Promise   = require('bluebird');
 var _         = require('lodash');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
+var jsonpatch = require('fast-json-patch');
 var helpers   = require(__dirname + '/helpers');
 
 var Card = sequelize.define('Card', {
@@ -79,6 +80,50 @@ var Card = sequelize.define('Card', {
     },
 
     instanceMethods: {
+        patch: function(patches) {
+            var that = this;
+            return new Promise(function(resolve, reject) {
+                var data = that.get();
+
+                // Test if the patches can be applied
+                var error = jsonpatch.validate(patches, data);
+                if (!_.isUndefined(error)) {
+                    return reject(new Error('Patches can not be applied'));
+                }
+
+                // Seems applicable, thus apply the patches
+                jsonpatch.apply(data, patches);
+
+                // And make the update atomic as requested by the rfc
+                sequelize.transaction(function(t) {
+                    // Apply values that can directly change
+                    that.set('title', data.title);
+                    that.set('description', data.description);
+                    that.set('dueDate', data.dueDate);
+                    that.set('estimate', data.estimate);
+
+                    return that.save({ transaction: t })
+                        .then(function() {
+                            // And update the position if required
+                            if (data.position !== that.position ||
+                                data.ColumnId !== that.ColumnId) {
+                                return sequelize.models.Column.findOne({
+                                        where: { id: data.ColumnId },
+                                        transaction: t
+                                    })
+                                    .then(function(col) {
+                                        return that.moveTo(col, data.position, t);
+                                    });
+                            } else {
+                                return Promise.resolve();
+                            }
+                        });
+                })
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
+            });
+        },
+
         /**
          * Assign a user (Which must be a participant of the board) to this card.
          * @param user which shall be added
@@ -170,9 +215,10 @@ var Card = sequelize.define('Card', {
          * transaction so we can ensure that you will not end up with messed up structure at the end if something fails.
          * @param column To/In which the card shall be positioned
          * @param offset where the card shall be placed
+         * @param {object} [transaction] Optional transaction which shall be used instead of the internal one
          * @returns {bluebird|exports|module.exports}
          */
-        moveTo: function(column, offset) {
+        moveTo: function(column, offset, transaction) {
             var that = this;
             return new Promise(function(resolve, reject) {
                 // Expect column to be a column
@@ -181,41 +227,35 @@ var Card = sequelize.define('Card', {
                 if (!_.isNumber(offset) && !_.isNaN(offset)) { return reject(new Error('Position offset must be numeric')); }
                 if (offset < 1) { offset = 1; }
 
-                that.getColumn()
-                    .then(function(cardColumn) {
-                        if (!sequelize.models.Column.isColumn(cardColumn)) { return reject(new Error('Card is not associated with a valid column')); }
-                        if (cardColumn.BoardId !== column.BoardId) { return reject(new Error('Can not move card to column in different board')); }
+                helpers.wrapTransaction(function(t) {
+                    return that.getColumn({ transaction: t })
+                        .then(function(cardColumn) {
+                            if (!sequelize.models.Column.isColumn(cardColumn)) { return reject(new Error('Card is not associated with a valid column')); }
+                            if (cardColumn.BoardId !== column.BoardId) { return reject(new Error('Can not move card to column in different board')); }
 
-                        // Options for reordering, which apply to all modes
-                        var orderOpts = {
-                            parentModel: sequelize.models.Column,
-                            childModel:  sequelize.models.Card,
-                            fk: 'ColumnId',
-                            canChangeParent: true
-                        };
+                            // Options for reordering, which apply to all modes
+                            var orderOpts = {
+                                parentModel: sequelize.models.Column,
+                                childModel:  sequelize.models.Card,
+                                fk: 'ColumnId',
+                                canChangeParent: true
+                            };
 
-                        // Move in same column or to another column?
-                        if (cardColumn.id === column.id) {
-                            // Move in same column
-                            sequelize.transaction(function(t) {
+                            // Move in same column or to another column?
+                            if (cardColumn.id === column.id) {
+                                // Move in same column
                                 return helpers.reorder(column, that, offset, t, orderOpts);
-                            })
-                              .then(function() { resolve(); })
-                              .catch(function(err) { reject(err); });
 
-                        } else {
-                            // Move to other columns
-                            sequelize.transaction(function(t) {
+                            } else {
+                                // Move to other columns
                                 return helpers.reorder(cardColumn, that, 0, t, orderOpts).then(function() {
                                     return helpers.reorder(column, that, offset, t, orderOpts);
                                 });
-                            })
-                                .then(function() { resolve(); })
-                                .catch(function(err) { reject(err); });
-                        }
-
-
-                    }).catch(function(err) { reject(err); });
+                            }
+                        });
+                }, transaction)
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
             });
         }
     }
