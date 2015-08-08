@@ -51,11 +51,13 @@ var Label = sequelize.define('Label', {
                 labelData.color = labelData.color || '';
 
                 var label;
-                Label.create(labelData)
-                    .then(function(l) {
-                        label = l;
-                        return label.setBoard(board);
-                    })
+                sequelize.transaction(function(t) {
+                    return Label.create(labelData, { transaction: t })
+                        .then(function (l) {
+                            label = l;
+                            return label.setBoard(board, { transaction: t });
+                        });
+                })
                     .then(function() { resolve(label); })
                     .catch(function (err) { reject(err); });
             });

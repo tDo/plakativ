@@ -50,17 +50,21 @@ var Task = sequelize.define('Task', {
                 taskData.title = taskData.title || '';
 
                 var task = Task.build(taskData);
-                task.validate()
-                    .then(function(err) {
-                        if (err) { return reject(err); }
-                        return Task.max('position', { where: { CardId: card.id }});
-                    })
-                    .then(function(max) {
-                        if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
-                        task.position = max + 1;
-                        return task.save();
-                    })
-                    .then(function() { task.setCard(card); })
+                sequelize.transaction(function(t) {
+                    return task.validate()
+                        .then(function (err) {
+                            if (err) { return Promise.reject(err); }
+                            return Task.max('position', { where: { CardId: card.id }, transaction: t });
+                        })
+                        .then(function (max) {
+                            if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
+                            task.position = max + 1;
+                            return task.save({ transaction: t });
+                        })
+                        .then(function () {
+                            return task.setCard(card, { transaction: t });
+                        });
+                })
                     .then(function() { resolve(task); })
                     .catch(function(err) { reject(err); });
             });
@@ -73,30 +77,31 @@ var Task = sequelize.define('Task', {
          * begins at 1 (Instead of 0) for a bit more "natural" order. The function uses a transaction
          * and will reorder all other task-positions accordingly without fragmentation.
          * @param offset where the task shall be placed
+         * @param {object} [transaction] Optional transaction which shall be used instead of the internal one
          * @returns {bluebird|exports|module.exports}
          */
-        moveTo: function(offset) {
+        moveTo: function(offset, transaction) {
             var that = this;
             return new Promise(function(resolve, reject) {
                 // Expect position to be a number
                 if (!_.isNumber(offset) && !_.isNaN(offset)) { return reject(new Error('Position offset must be numeric')); }
                 if (offset < 1) { offset = 1; }
 
-                that.getCard()
-                    .then(function(card) {
-                        if (!sequelize.models.Card.isCard(card)) { return reject(new Error('Task is not associated with a valid card')); }
+                helpers.wrapTransaction(function(t) {
+                    return that.getCard({ transaction: t })
+                        .then(function(card) {
+                            if (!sequelize.models.Card.isCard(card)) { return Promise.reject(new Error('Task is not associated with a valid card')); }
 
-                        // Move it
-                        sequelize.transaction(function(t) {
+                            // Move it
                             return helpers.reorder(card, that, offset, t, {
                                 parentModel: sequelize.models.Card,
                                 childModel:  sequelize.models.Task,
                                 fk: 'CardId'
                             });
-                        })
-                            .then(function() { resolve(); })
-                            .catch(function(err) { reject(err); });
-                    }).catch(function(err) { reject(err); });
+                        });
+                }, transaction)
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
             });
         }
     }
