@@ -1,6 +1,5 @@
 var _         = require('lodash');
 var express   = require('express');
-var jsonpatch = require('fast-json-patch');
 var loggedIn  = require(__dirname + '/middleware/logged-in');
 var access    = require(__dirname + '/middleware/board-access');
 var models    = require(__dirname + '/../models');
@@ -10,6 +9,16 @@ var router    = express.Router();
 
 // Authentication-handler
 router.all('*', loggedIn);
+
+function emitBoardUpdate(id) {
+    models.Board.findEager(id)
+        .then(function(board) {
+            if (!board) { return false; }
+
+            var io = socketio();
+            io.to('board' + board.id).emit('boardUpdated', board);
+        }).catch(function(err) { console.log(err); });
+}
 
 function findOne(model, paramName, id, req, res, next) {
     model.findOne({ where: { id: id }})
@@ -33,17 +42,6 @@ router.param('boardIdEager', function(req, res, next, id) {
             next();
         }).catch(function(err) { next(err); });
 });
-
-function emitBoardUpdate(id) {
-    models.Board.findEager(id)
-        .then(function(board) {
-            if (!board) { return false; }
-
-            // TODO: We should do room magic here somehow...
-            var io = socketio();
-            io.to('board' + board.id).emit('boardUpdated', board);
-        }).catch(function(err) { console.log(err); });
-}
 
 router.param('boardId', function(req, res, next, id) {
     findOne(models.Board, 'board', id, req, res, next);
@@ -109,16 +107,14 @@ router.route('/:boardId/columns')
 
 router.route('/:boardId/columns/:columnId')
     .all(access.canExecuteAdminAction)
-    .put(function(req, res, next) {
-        // TODO: Update data of a column
-    })
     .patch(function(req, res, next) {
-        // Apply (valid) patches to the column
+        // Apply patches to the column
         req.column.patch(req.body)
             .then(function() {
                 res.json(true);
                 emitBoardUpdate(req.board.id);
-            }).catch(function(err) { next(err); });
+            })
+            .catch(function(err) { next(err); });
     })
     .delete(function(req, res, next) {
         // TODO: Remove a column and all its cards
@@ -137,20 +133,15 @@ router.route('/:boardId/columns/:columnId/cards')
 
 router.route('/:boardId/columns/:columnId/cards/:cardId')
     .all(access.canExecuteUserAction)
-    .put(function(req, res, next) {
-        // TODO: Change a cards content
-    })
-    .delete(function(req, res, next) { next(new Error('Not implemented')); });
-
-router.route('/:boardId/columns/:columnId/cards/:cardId/position')
-    .all(access.canExecuteUserAction)
-    .put(function(req, res, next) {
-        req.card.moveTo(req.column, req.body.offset)
+    .patch(function(req, res, next) {
+        // Apply patches to the card
+        req.card.patch(req.body)
             .then(function() {
                 res.json(true);
                 emitBoardUpdate(req.board.id);
             })
             .catch(function(err) { next(err); });
-    });
+    })
+    .delete(function(req, res, next) { next(new Error('Not implemented')); });
 
 module.exports = router;

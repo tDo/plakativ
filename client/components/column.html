@@ -16,7 +16,7 @@
                 on-response  = "handleCardCreated"></iron-ajax>
         <iron-ajax
                 id           = "cardMover"
-                method       = "PUT"
+                method       = "PATCH"
                 content-type = "application/json"
                 handle-as    = "json"
                 on-response  = "handleCardMoved"></iron-ajax>
@@ -126,8 +126,11 @@
                 var boardId = this.get('boardId');
                 var column  = this.get('column');
                 var r       = this.$.cardMover;
-                r.url       = '/boards/' + boardId + '/columns/' + column.id + '/cards/' + cardId + '/position';
-                r.body      = JSON.stringify({ offset: offset });
+                r.url       = '/boards/' + boardId + '/columns/' + column.id + '/cards/' + cardId;
+                r.body      = JSON.stringify([
+                    { op: 'replace', path: '/ColumnId', value: column.id },
+                    { op: 'replace', path: '/position', value: offset }
+                ]);
                 r.generateRequest();
             },
 

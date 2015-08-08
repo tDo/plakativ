@@ -205,15 +205,15 @@ describe('Columns', function() {
                     id = col.id;
                     return col.patch([
                         { op: 'replace', path: '/title', value: '' },
-                        { op: 'replace', path: '/wiplimit', value: -1 }
+                        { op: 'replace', path: '/wipLimit', value: -1 }
                     ]);
                 })
                 .then(function() { done(new Error('Applied path with invalid values')); })
                 .catch(function(err) {
                     should.exist(err);
-                    err.message.should.match(/Patches can not be applied/);
+                    err.message.should.match(/Validation error:/);
                     done();
-                })
+                });
         });
 
         it('should be able to move a column using the patch-handler', function(done) {
