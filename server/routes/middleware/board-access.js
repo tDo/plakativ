@@ -87,7 +87,6 @@ function canExecuteAdminAction(req, res, next) {
         .then(function(isParticipating) {
             if (!isParticipating) {
                 res.status(403).json({ error: { message: 'You are not allowed to edit content in this board' }});
-                console.log('We denied because no user')
             } else {
                 // Is participating, check if it's also an admin
                 req.board.isAdmin(req.user)

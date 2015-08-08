@@ -29,7 +29,7 @@
             on-response   = "handleColumnCreated"></iron-ajax>
         <iron-ajax
             id           = "columnMover"
-            method       = "PUT"
+            method       = "PATCH"
             content-type = "application/json"
             handle-as    = "json"
             on-response  = "handleColumnMoved"></iron-ajax>
@@ -194,8 +194,8 @@
             moveColumn: function(columnId, offset) {
                 var boardId = this.get('boardId');
                 var r       = this.$.columnMover;
-                r.url       = '/boards/' + boardId + '/columns/' + columnId + '/position';
-                r.body      = JSON.stringify({ offset: offset });
+                r.url       = '/boards/' + boardId + '/columns/' + columnId;
+                r.body      = JSON.stringify([{ op: 'replace', 'path': '/position', value: offset }]);
                 r.generateRequest();
             },
 

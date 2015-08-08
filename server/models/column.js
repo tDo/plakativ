@@ -2,6 +2,7 @@ var Promise   = require('bluebird');
 var _         = require('lodash');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
+var jsonpatch = require('fast-json-patch');
 var helpers   = require(__dirname + '/helpers');
 
 var Column = sequelize.define('Column', {
@@ -70,15 +71,59 @@ var Column = sequelize.define('Column', {
 
     instanceMethods: {
         /**
+         * Patch handler which can be used to apply partial changes to a column
+         * using the JSON-patch format defined in RFC 6902. Beside the static fields
+         * this handler can also be used to trigger a position change, which internally
+         * calls the move-handler. The whole operation is atomic, thus if one of the actions
+         * fails, all will be rolled back.
+         * @param patches in RFC 6902 patch format
+         * @returns {bluebird|exports|module.exports}
+         */
+        patch: function(patches) {
+            var that = this;
+            return new Promise(function(resolve, reject) {
+                var data = that.get();
+
+                // Test if the patches can be applied
+                var error = jsonpatch.validate(patches, data);
+                if (!_.isUndefined(error)) {
+                    return reject(new Error('Patches can not be applied'));
+                }
+
+                // Seems applicable, thus apply the patches
+                jsonpatch.apply(data, patches);
+
+                // And make it atomic (As request by the RFC)
+                sequelize.transaction(function(t) {
+                    // Apply values that can directly change
+                    that.set('title', data.title);
+                    that.set('wipLimit', data.wipLimit);
+
+                    return that.save({ transaction: t })
+                        .then(function() {
+                            if (data.position !== that.position) {
+                                return that.moveTo(data.position, t);
+                            } else {
+                                return Promise.resolve();
+                            }
+                        });
+                })
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
+
+            });
+        },
+        /**
          * Moves a column to a an absolute offset in the order of columns (e.g. internally stored position
          * does not matter for reordering, just the actual sequence/order of columns is relevant). The passed
          * offset itsself begins at 1 (Instead of 0 based, thus it reflects a more natural count than the typical
          * index based 0-offset). The function is transaction-protected and will also ensure that order does not
          * become fragmented.
          * @param offset where the column shall be placed in overall order
-         * @returns {*|Bluebird.Promise}
+         * @param {object} [transaction] transaction Optional transaction which shall be used instead of the internal one
+         * @returns {*|Promise}
          */
-        moveTo: function(offset) {
+        moveTo: function(offset, transaction) {
             var that = this;
             return new Promise(function(resolve, reject) {
                 // Expect position to be a number
@@ -89,14 +134,13 @@ var Column = sequelize.define('Column', {
                     .then(function(board) {
                         if (!sequelize.models.Board.isBoard(board)) { return reject(new Error('Card is not associated with a valid board')); }
 
-                        // Move it
-                        sequelize.transaction(function(t) {
+                        return helpers.wrapTransaction(function(t) {
                             return helpers.reorder(board, that, offset, t, {
                                 parentModel: sequelize.models.Board,
                                 childModel:  sequelize.models.Column,
                                 fk: 'BoardId'
                             });
-                        })
+                        }, transaction)
                             .then(function() { resolve(); })
                             .catch(function(err) { reject(err); });
 

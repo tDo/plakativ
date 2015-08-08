@@ -1,5 +1,6 @@
-var _       = require('lodash');
-var Promise = require('bluebird');
+var _         = require('lodash');
+var Promise   = require('bluebird');
+var sequelize = require(__dirname + '/../libs/sequelize')();
 
 /**
  * Helper function can be used to verify if a specific object-instance
@@ -14,6 +15,26 @@ function isModelOfType(obj, requiredModel) {
         return obj.Model === requiredModel;
     } catch(err) { return false; }
 }
+
+/**
+ * Small helper function which can be used to either apply an already existant
+ * transaction to a function or create a new one, using that for the handler.
+ * The functionality is basically the same as using the sequelize.transaction
+ * helper, but will reuse to use an already existing transaction
+ * @param func which shall be called and its result returned (Should return a Promise)
+ * @param {*} [transaction] if define the transaction will be reused, if undefined a new one will be created
+ * @returns {*} the result (Typically promise) of the wrapped function
+ */
+function wrapTransaction(func, transaction) {
+    if (!_.isUndefined(transaction)) {
+        return func(transaction);
+    } else {
+        return sequelize.transaction(function(t) {
+            return func(t);
+        });
+    }
+}
+
 
 /**
  * The reorder-helper allows us to handle placement of childs items
@@ -146,7 +167,11 @@ function reorder(parent, item, position, transaction, options) {
                 }).catch(function(err) { reject(err); });
             }).catch(function(err) { reject(err); });
     });
-};
+}
 
-module.exports.isModelOfType = isModelOfType;
-module.exports.reorder = reorder;
+
+module.exports = {
+    isModelOfType:   isModelOfType,
+    wrapTransaction: wrapTransaction,
+    reorder:         reorder
+};
