@@ -1,5 +1,6 @@
 var _         = require('lodash');
 var express   = require('express');
+var jsonpatch = require('fast-json-patch');
 var loggedIn  = require(__dirname + '/middleware/logged-in');
 var access    = require(__dirname + '/middleware/board-access');
 var models    = require(__dirname + '/../models');
@@ -111,19 +112,16 @@ router.route('/:boardId/columns/:columnId')
     .put(function(req, res, next) {
         // TODO: Update data of a column
     })
-    .delete(function(req, res, next) {
-        // TODO: Remove a column and all its cards
-    });
-
-router.route('/:boardId/columns/:columnId/position')
-    .all(access.canExecuteAdminAction)
-    .put(function(req, res, next) {
-        req.column.moveTo(req.body.offset)
+    .patch(function(req, res, next) {
+        // Apply (valid) patches to the column
+        req.column.patch(req.body)
             .then(function() {
                 res.json(true);
                 emitBoardUpdate(req.board.id);
-            })
-            .catch(function(err) { next(err); });
+            }).catch(function(err) { next(err); });
+    })
+    .delete(function(req, res, next) {
+        // TODO: Remove a column and all its cards
     });
 
 router.route('/:boardId/columns/:columnId/cards')

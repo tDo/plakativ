@@ -1,5 +1,5 @@
 process.env.NODE_ENV = 'test';
-require('should');
+var should  = require('should');
 var helpers = require(__dirname + '/../helpers');
 var models  = require(__dirname + '/../../../server/models');
 
@@ -168,4 +168,79 @@ describe('Columns', function() {
         });
     });
 
+    describe('Patching', function() {
+        beforeEach(function(done) {
+            // Create a hand full of columns
+            return models.Column.create({ title: 'Col A', position: 1, BoardId: board.id })
+                .then(function() { return models.Column.create({ title: 'Col B', position: 2, BoardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col C', position: 3, BoardId: board.id }); })
+                .then(function() { return models.Column.create({ title: 'Col D', position: 4, BoardId: board.id }); })
+                .then(function() { done(); })
+                .catch(function(err) { done(err); });
+        });
+
+        it('can patch static fields', function(done) {
+            var id;
+            models.Column.findOne({ where: { title: 'Col A', BoardId: board.id }})
+                .then(function(col) {
+                    id = col.id;
+                    return col.patch([
+                        { op: 'replace', path: '/title', value: 'New Title' },
+                        { op: 'replace', path: '/wipLimit', value: 10 }
+                    ]);
+                })
+                .then(function() { return models.Column.findOne({ where: { id: id, BoardId: board.id }}) })
+                .then(function(col) {
+                    col.title.should.equal('New Title');
+                    col.wipLimit.should.equal(10);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should apply default model validation to fields', function(done) {
+            var id;
+            models.Column.findOne({ where: { title: 'Col A', BoardId: board.id }})
+                .then(function(col) {
+                    id = col.id;
+                    return col.patch([
+                        { op: 'replace', path: '/title', value: '' },
+                        { op: 'replace', path: '/wiplimit', value: -1 }
+                    ]);
+                })
+                .then(function() { done(new Error('Applied path with invalid values')); })
+                .catch(function(err) {
+                    should.exist(err);
+                    err.message.should.match(/Patches can not be applied/);
+                    done();
+                })
+        });
+
+        it('should be able to move a column using the patch-handler', function(done) {
+            models.Column.findOne({ where: { title: 'Col C', BoardId: board.id }})
+                .then(function(colC) {
+                    return colC.patch([
+                        { op: 'replace', path: '/position', value: 2 }
+                    ]);
+                })
+                .then(function() { return board.getColumns({ order: 'position asc'}); })
+                .then(function(columns) {
+                    columns.should.have.length(4);
+                    columns[0].title.should.equal('Col A');
+                    columns[0].position.should.equal(1);
+
+                    columns[1].title.should.equal('Col C');
+                    columns[1].position.should.equal(2);
+
+                    columns[2].title.should.equal('Col B');
+                    columns[2].position.should.equal(3);
+
+                    columns[3].title.should.equal('Col D');
+                    columns[3].position.should.equal(4);
+
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+    });
 });
