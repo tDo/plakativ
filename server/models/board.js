@@ -12,8 +12,23 @@ var Board = sequelize.define('Board', {
             len: { args: [4, 100], msg: 'Board name must at least have 4 characters' }
         }
     },
-    private: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
-    closed: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false }
+    private: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+        validate: {
+            isBoolean: { msg: 'Private flag must be a boolean' }
+        }
+    },
+
+    closed: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        validate: {
+            isBoolean: { msg: 'Closed flag must be a boolean' }
+        }
+    }
 }, {
 
     classMethods: {
@@ -41,11 +56,13 @@ var Board = sequelize.define('Board', {
                 boardData.name = boardData.name || '';
 
                 var board;
-                Board.create(boardData)
-                    .then(function(b) {
-                        board = b;
-                        return board.addUser(user, { admin: true });
-                    })
+                sequelize.transaction(function(t) {
+                    return Board.create(boardData, { transaction: t })
+                        .then(function (b) {
+                            board = b;
+                            return board.addUser(user, { admin: true, transaction: t });
+                        });
+                })
                     .then(function() { resolve(board); })
                     .catch(function(err) { reject(err); });
             });

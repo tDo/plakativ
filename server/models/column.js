@@ -52,17 +52,21 @@ var Column = sequelize.define('Column', {
                 columnData.title = columnData.title || '';
 
                 var column = Column.build(columnData);
-                column.validate()
-                    .then(function(err) {
-                        if (err) { return reject(err); }
-                        return Column.max('position', { where: { BoardId: board.id }});
-                    })
-                    .then(function(max) {
-                        if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
-                        column.position = max + 1;
-                        return column.save();
-                    })
-                    .then(function() { return column.setBoard(board); })
+                sequelize.transaction(function(t) {
+                    return column.validate()
+                        .then(function (err) {
+                            if (err) { return Promise.reject(err); }
+                            return Column.max('position', { where: { BoardId: board.id }, transaction: t });
+                        })
+                        .then(function (max) {
+                            if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
+                            column.position = max + 1;
+                            return column.save({ transaction: t });
+                        })
+                        .then(function () {
+                            return column.setBoard(board, { transaction: t });
+                        });
+                })
                     .then(function() { resolve(column); })
                     .catch(function(err) { reject(err); });
             });

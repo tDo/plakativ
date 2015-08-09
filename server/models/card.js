@@ -29,7 +29,10 @@ var Card = sequelize.define('Card', {
 
     dueDate: {
         type: Sequelize.DATE,
-        allowNull: true
+        allowNull: true,
+        validate: {
+            isDate: { msg: 'Must be a valid date-string' }
+        }
     },
 
     estimate: {
@@ -62,17 +65,21 @@ var Card = sequelize.define('Card', {
                 cardData.description = cardData.description || '';
 
                 var card = Card.build(cardData);
-                card.validate()
-                     .then(function(err) {
-                        if (err) { return reject(err); }
-                        return Card.max('position', { where: { ColumnId: column.id }});
-                    })
-                    .then(function(max) {
-                        if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
-                        card.position = max + 1;
-                        return card.save();
-                    })
-                    .then(function() { return card.setColumn(column); })
+                sequelize.transaction(function(t) {
+                    return card.validate()
+                        .then(function (err) {
+                            if (err) { return Promise.reject(err); }
+                            return Card.max('position', { where: { ColumnId: column.id }, transaction: t });
+                        })
+                        .then(function (max) {
+                            if (!_.isNumber(max) || _.isNaN(max)) { max = 0; }
+                            card.position = max + 1;
+                            return card.save({ transaction: t });
+                        })
+                        .then(function () {
+                            return card.setColumn(column, { transaction: t });
+                        });
+                })
                     .then(function() { resolve(card); })
                     .catch(function(err) { reject(err); });
             });
@@ -80,6 +87,15 @@ var Card = sequelize.define('Card', {
     },
 
     instanceMethods: {
+        /**
+         * Patch handler which can be used to apply partial changes to a card using
+         * the JSON-patch format defined in RFC 6902. Besides the static fields this
+         * handler can also be used to trigger a position change (Either in a single
+         * column or between columns). The whole operation is atomic and rolled back
+         * if one of the actions fails.
+         * @param patches in RFC 6902 patch format
+         * @returns {bluebird|exports|module.exports}
+         */
         patch: function(patches) {
             var that = this;
             return new Promise(function(resolve, reject) {
@@ -134,13 +150,15 @@ var Card = sequelize.define('Card', {
             return new Promise(function(resolve, reject) {
                 if (!sequelize.models.User.isUser(user)) { return reject(new Error('Invalid user')); }
                 // Now check for the board (Is the user participating?)
-                that.getColumn()
-                    .then(function(column) { return column.getBoard(); })
-                    .then(function(board) { return board.hasUser(user); })
-                    .then(function(isParticipating) {
-                        if (!isParticipating) { return reject(new Error('The user is not participating in the board')); }
-                        return that.addAssignee(user);
-                    })
+                sequelize.transaction(function(t) {
+                    return that.getColumn({ transaction: t })
+                        .then(function(column) { return column.getBoard({ transaction: t }); })
+                        .then(function(board) { return board.hasUser(user, { transaction: t }); })
+                        .then(function(isParticipating) {
+                            if (!isParticipating) { return Promise.reject(new Error('The user is not participating in the board')); }
+                            return that.addAssignee(user, { transaction: t });
+                        });
+                })
                     .then(function() { resolve(); })
                     .catch(function(err) { reject(err); });
             });
@@ -175,13 +193,15 @@ var Card = sequelize.define('Card', {
             return new Promise(function(resolve, reject) {
                 if (!sequelize.models.Label.isLabel(label)) { return reject(new Error('Invalid label')); }
                 // Now check for the board (Is the label part of this board?)
-                that.getColumn()
-                    .then(function(column) { return column.getBoard(); })
-                    .then(function(board) { return board.hasLabel(label); })
-                    .then(function(isPart) {
-                        if (!isPart) { return reject(new Error('The label does not belong to the board')); }
-                        return that.addLabel(label);
-                    })
+                sequelize.transaction(function(t) {
+                    return that.getColumn({ transaction: t })
+                        .then(function(column) { return column.getBoard({ transaction: t }); })
+                        .then(function(board) { return board.hasLabel(label, { transaction: t }); })
+                        .then(function(isPart) {
+                            if (!isPart) { return Promise.reject(new Error('The label does not belong to the board')); }
+                            return that.addLabel(label, { transaction: t });
+                        });
+                })
                     .then(function() { resolve(); })
                     .catch(function(err) { reject(err); });
             });
@@ -230,8 +250,8 @@ var Card = sequelize.define('Card', {
                 helpers.wrapTransaction(function(t) {
                     return that.getColumn({ transaction: t })
                         .then(function(cardColumn) {
-                            if (!sequelize.models.Column.isColumn(cardColumn)) { return reject(new Error('Card is not associated with a valid column')); }
-                            if (cardColumn.BoardId !== column.BoardId) { return reject(new Error('Can not move card to column in different board')); }
+                            if (!sequelize.models.Column.isColumn(cardColumn)) { return Promise.reject(new Error('Card is not associated with a valid column')); }
+                            if (cardColumn.BoardId !== column.BoardId) { return Promise.reject(new Error('Can not move card to column in different board')); }
 
                             // Options for reordering, which apply to all modes
                             var orderOpts = {

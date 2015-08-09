@@ -1,5 +1,5 @@
 process.env.NODE_ENV = 'test';
-require('should');
+var should  = require('should');
 var helpers = require(__dirname + '/../helpers');
 var models  = require(__dirname + '/../../../server/models');
 
@@ -199,6 +199,84 @@ describe('Tasks', function() {
                     tasks[3].position.should.equal(4);
 
                     tasks[4].title.should.equal('Task 3');
+                    tasks[4].position.should.equal(5);
+
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+    });
+
+    describe('Patching', function() {
+        beforeEach(function(done) {
+            models.Task.make(card, { title: 'Task 1'})
+                .then(function() { return models.Task.make(card, { title: 'Task 2'}); })
+                .then(function() { return models.Task.make(card, { title: 'Task 3'}); })
+                .then(function() { return models.Task.make(card, { title: 'Task 4'}); })
+                .then(function() { return models.Task.make(card, { title: 'Task 5'}); })
+                .then(function() { done(); })
+                .catch(function(err) { done(err); });
+        });
+
+        it('can patch static fields', function(done) {
+            var id;
+            models.Task.findOne({ where: { title: 'Task 1' }})
+                .then(function(task) {
+                    id = task.id;
+                    return task.patch([
+                        { op: 'replace', path: '/title', value: 'New title' },
+                        { op: 'replace', path: '/done', value: true }
+                    ]);
+                })
+                .then(function() { return models.Task.findOne({ where: { id: id }}); })
+                .then(function(task) {
+                    task.title.should.equal('New title');
+                    task.done.should.equal(true);
+                    done();
+                })
+                .catch(function(err) { done(err); });
+        });
+
+        it('should apply default validation to fields', function(done) {
+            models.Task.findOne({ where: { title: 'Task 1' }})
+                .then(function(task) {
+                    return task.patch([
+                        { op: 'replace', path: '/title', value: '...' },
+                        { op: 'replace', path: '/done', value: 'Not a boolean' }
+                    ]);
+                })
+                .then(function() { return done(new Error('Applied patch with invalid values')); })
+                .catch(function(err) {
+                    should.exist(err);
+                    err.message.should.match(/Validation error:/);
+                    done();
+                });
+        });
+
+        it('should be able to move a task using the patch handler', function(done) {
+            models.Task.findOne({ where: { title: 'Task 3', CardId: card.id }})
+                .then(function(task) {
+                    return task.patch([
+                        { op: 'replace', path: '/position', value: 4 }
+                    ]);
+                })
+                .then(function() { return card.getTasks({ order: 'position asc'}); })
+                .then(function(tasks) {
+                    tasks.should.have.length(5);
+
+                    tasks[0].title.should.equal('Task 1');
+                    tasks[0].position.should.equal(1);
+
+                    tasks[1].title.should.equal('Task 2');
+                    tasks[1].position.should.equal(2);
+
+                    tasks[2].title.should.equal('Task 4');
+                    tasks[2].position.should.equal(3);
+
+                    tasks[3].title.should.equal('Task 3');
+                    tasks[3].position.should.equal(4);
+
+                    tasks[4].title.should.equal('Task 5');
                     tasks[4].position.should.equal(5);
 
                     done();

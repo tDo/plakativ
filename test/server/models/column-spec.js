@@ -189,7 +189,7 @@ describe('Columns', function() {
                         { op: 'replace', path: '/wipLimit', value: 10 }
                     ]);
                 })
-                .then(function() { return models.Column.findOne({ where: { id: id, BoardId: board.id }}) })
+                .then(function() { return models.Column.findOne({ where: { id: id, BoardId: board.id }}); })
                 .then(function(col) {
                     col.title.should.equal('New Title');
                     col.wipLimit.should.equal(10);
