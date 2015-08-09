@@ -2,6 +2,7 @@ var _         = require('lodash');
 var Promise   = require('bluebird');
 var Sequelize = require('sequelize');
 var sequelize = require(__dirname + '/../libs/sequelize')();
+var jsonpatch = require('fast-json-patch');
 var helpers   = require(__dirname + '/helpers');
 
 var Task = sequelize.define('Task', {
@@ -14,7 +15,10 @@ var Task = sequelize.define('Task', {
     done: {
         type: Sequelize.BOOLEAN,
         allowNull: false,
-        defaultValue: false
+        defaultValue: false,
+        validate: {
+            isBoolean: { msg: 'Done flag must be a boolean' }
+        }
     },
 
     title: {
@@ -72,6 +76,48 @@ var Task = sequelize.define('Task', {
     },
 
     instanceMethods: {
+        /**
+         * Patch handler which can be used to apply partial changes to a task
+         * using the JSON-patch format as defined in RFC 6902. Beside static fields
+         * this handler can also be used to trigger a position change, which internally
+         * calls the move handler. The whole operation is atomic and will be rolled back
+         * on faults.
+         * @param patches in RFC 6902 patch format
+         * @returns {bluebird|exports|module.exports}
+         */
+        patch: function(patches) {
+            var that = this;
+            return new Promise(function(resolve, reject) {
+                var data = that.get();
+
+                // Test if the patches can be applied
+                var error = jsonpatch.validate(patches, data);
+                if (!_.isUndefined(error)) {
+                    return reject(new Error('Patches can not be applied'));
+                }
+
+                // Seems applicable, thus apply the patches
+                jsonpatch.apply(data, patches);
+
+                sequelize.transaction(function(t) {
+                    // Apply direct changes
+                    that.set('title', data.title);
+                    that.set('done', data.done);
+
+                    return that.save({ transaction: t })
+                        .then(function() {
+                            if (data.position !== that.position) {
+                                return that.moveTo(data.position, t);
+                            } else {
+                                return Promise.resolve();
+                            }
+                        });
+                })
+                    .then(function() { resolve(); })
+                    .catch(function(err) { reject(err); });
+            });
+        },
+
         /**
          * Moves a task to an absolute offset in the order of tasks. The passed offset itself
          * begins at 1 (Instead of 0) for a bit more "natural" order. The function uses a transaction

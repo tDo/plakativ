@@ -29,7 +29,10 @@ var Card = sequelize.define('Card', {
 
     dueDate: {
         type: Sequelize.DATE,
-        allowNull: true
+        allowNull: true,
+        validate: {
+            isDate: { msg: 'Must be a valid date-string' }
+        }
     },
 
     estimate: {
