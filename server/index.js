@@ -7,7 +7,9 @@ var LocalStrategy    = require('passport-local').Strategy;
 var passportSocketIo = require('passport.socketio');
 var routes           = require(__dirname + '/routes');
 var models           = require(__dirname + '/models');
+var sequelize        = models.sequelize();
 var socketio         = require(__dirname + '/libs/socketio');
+var SequelizeStore   = require('connect-session-sequelize')(expressSession.Store);
 
 function init(config) {
     // Create actual express application instance
@@ -22,9 +24,9 @@ function init(config) {
     app.use(cookieParser());
 
     // Express session-handling
-    var _key = 'express.sid';
-    var _secret = 'change me to awesome config';
-    var _store = new expressSession.MemoryStore();    // replace this as soon as possible!
+    var _key     = 'express.sid';
+    var _secret  = 'change me to awesome config';
+    var _store   = new SequelizeStore({ db: sequelize });
     var _session = expressSession({
         key: _key,
         store: _store,
